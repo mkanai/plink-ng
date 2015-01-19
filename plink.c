@@ -2006,6 +2006,10 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
 
         if (glm_modifier & GLM_RANDOMIZATION) {
             LOGPRINTF("Logistic regression randomization test #%d-%d started.\n", uii, perm_end);
+            if (!(pheno_nm_ct)) {
+              pheno_nm_ct = sample_ct;
+              for (ulii = 0; ulii < sample_ct; ulii++) {set_bit(pheno_nm, ulii);}
+            }
         }
 
         for (; uii <= perm_end; uii++) {
