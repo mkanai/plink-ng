@@ -5,7 +5,8 @@ BLASFLAGS=-L/usr/lib64/atlas -llapack -lcblas -latlas
 BLASFLAGS64=-L/usr/lib64/atlas -llapack -lcblas -latlas
 LINKFLAGS=-lm -lpthread
 ZLIB=zlib-1.2.8/libz.so.1.2.8
-ARCH64=-arch x86_64
+ZLIB64=zlib-1.2.8/libz.so.1.2.8
+ARCH64=-m64
 
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
@@ -67,7 +68,7 @@ plink64c: $(SRC)
 	gcc $(CFLAGS) $(ARCH64) $(SRC) -o plink $(BLASFLAGS64) $(LINKFLAGS) -L. $(ZLIB64)
 
 plink64nl: $(SRC)
-	g++ $(CFLAGS) $(ARCH64) $(SRC) -o plink $(LINKFLAGS) -L. $(ZLIB64)
+	g++ $(CFLAGS) -DNOLAPACK $(ARCH64) $(SRC) -o plink $(LINKFLAGS) -L. $(ZLIB64)
 
 pigz_test: pigz_test.c pigz.c yarn.c
 	g++ -Wall -arch x86_64 -O2 pigz_test.c pigz.c yarn.c -o pigz_test -L. $(ZLIB64)
