@@ -2009,13 +2009,15 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
         }
 
         for (; uii <= perm_end; uii++) {
-          sprintf(perm_count, ".%d", uii);
-          memcpy(outname_end, perm_count, strlen(perm_count) + 1);
-          outname_end2 = outname_end + strlen(perm_count);
-          sfmt_init_gen_rand(&sfmt, uii);
-          for (uljj = 0; uljj < sample_ct; uljj++) {
+          if (glm_modifier & GLM_RANDOMIZATION) {
+            sprintf(perm_count, ".%d", uii);
+            memcpy(outname_end, perm_count, strlen(perm_count) + 1);
+            outname_end2 = outname_end + strlen(perm_count);
+            sfmt_init_gen_rand(&sfmt, uii);
+            for (uljj = 0; uljj < sample_ct; uljj++) {
               if (sfmt_genrand_uint32(&sfmt) % 2) {set_bit(pheno_c, uljj);}
               else {clear_bit(pheno_c, uljj);}
+            }
           }
 	      retval = glm_logistic_assoc(threads, bedfile, bed_offset, outname, outname_end2, glm_modifier, glm_vif_thresh, glm_xchr_model, glm_mperm_val, parameters_range_list_ptr, tests_range_list_ptr, ci_size, ci_zt, pfilter, output_min_p, mtest_adjust, adjust_lambda, unfiltered_marker_ct, marker_exclude, marker_ct, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_allele_ptrs, max_marker_allele_len, marker_reverse, condition_mname, condition_fname, chrom_info_ptr, unfiltered_sample_ct, sample_ct, sample_exclude, cluster_ct, cluster_map, cluster_starts, apip, mperm_save, pheno_nm_ct, pheno_nm, pheno_c, covar_ct, covar_names, max_covar_name_len, covar_nm, covar_d, founder_info, sex_nm, sex_male, ldip->modifier & LD_IGNORE_X, hh_exists, perm_batch_size, sip);
         }
