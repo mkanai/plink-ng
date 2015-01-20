@@ -2000,8 +2000,10 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
         char perm_count[FNAMESIZE];
         uint32_t perm_end;
         if (logistic_randomization_perm_range_list_ptr->name_ct == 2) {
-          scan_uint_defcap(logistic_randomization_perm_range_list_ptr->names, &uii);
-          scan_uint_defcap(logistic_randomization_perm_range_list_ptr->names + logistic_randomization_perm_range_list_ptr->name_max_len, &perm_end);
+          Range_list* rlptr = logistic_randomization_perm_range_list_ptr;
+          scan_uint_defcap(rlptr->names, &uii);
+          scan_uint_defcap(rlptr->names + rlptr->name_max_len, &perm_end);
+          outname_end -= strlen(rlptr->names) + strlen(rlptr->names + rlptr->name_max_len) + 2;
         } else { uii = 1; perm_end = 1;}
 
         if (glm_modifier & GLM_RANDOMIZATION) {
