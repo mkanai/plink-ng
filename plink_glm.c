@@ -6597,22 +6597,29 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   }
 
   outname_end2 = memcpyb(outname_end, ".assoc.logistic", 16);
+  if (glm_modifier & GLM_RANDOMIZATION) {
+    outname_end2 = memcpyb(outname_end2, ".P", 3);
+  }
   if (fopen_checked(&outfile, outname, "w")) {
     goto glm_logistic_assoc_ret_OPEN_FAIL;
   }
   LOGPRINTFWW5("Writing logistic model association results to %s ... ", outname);
   fflush(stdout);
-  sprintf(tbuf, " CHR %%%us         BP   A1       TEST    NMISS       %s ", plink_maxsnp, report_odds? "  OR" : "BETA");
-  fprintf(outfile, tbuf, "SNP");
-  if (display_ci) {
-    uii = (uint32_t)((int32_t)(ci_size * 100));
-    if (uii >= 10) {
-      fprintf(outfile, "      SE      L%u      U%u ", uii, uii);
-    } else {
-      fprintf(outfile, "      SE       L%u       U%u ", uii, uii);
+  if (glm_modifier & GLM_RANDOMIZATION) {
+    fputs("P \n", outfile);
+  } else {
+    sprintf(tbuf, " CHR %%%us         BP   A1       TEST    NMISS       %s ", plink_maxsnp, report_odds? "  OR" : "BETA");
+    fprintf(outfile, tbuf, "SNP");
+    if (display_ci) {
+      uii = (uint32_t)((int32_t)(ci_size * 100));
+      if (uii >= 10) {
+        fprintf(outfile, "      SE      L%u      U%u ", uii, uii);
+      } else {
+        fprintf(outfile, "      SE       L%u       U%u ", uii, uii);
+      }
     }
+    fputs("        STAT            P \n", outfile);
   }
-  fputs("        STAT            P \n", outfile);
   loop_end = marker_initial_ct / 100;
   marker_unstopped_ct = marker_initial_ct;
   g_adaptive_ci_zt = ltqnorm(1 - apip->beta / (2.0 * ((int32_t)marker_initial_ct)));
@@ -6854,7 +6861,15 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	      }
 	      wptr = double_g_writewx4x(wptr, zval, 12, ' ');
 	      wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
-	      if (fwrite_checked(writebuf, wptr - writebuf, outfile)) {
+
+	      char* wwptr = writebuf;
+	      if (glm_modifier & GLM_RANDOMIZATION) {
+	        for (wwptr = wptr; wwptr > writebuf; wwptr--) {
+	          if (*wwptr == ' ') {break;}
+	        }
+	        wwptr++;
+	      }
+	      if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
 		goto glm_logistic_assoc_ret_WRITE_FAIL;
 	      }
 	    }
