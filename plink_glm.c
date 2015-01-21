@@ -6864,7 +6864,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 
 	      char* wwptr = writebuf;
 	      if (glm_modifier & GLM_RANDOMIZATION) {
-	        for (wwptr = wptr; wwptr > writebuf; wwptr--) {
+	        for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
 	          if (*wwptr == ' ') {break;}
 	        }
 	        wwptr++;
@@ -6891,7 +6891,14 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	      }
               wptr = double_g_writewx4x(wptr, dxx, 12, ' ');
               wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
-              if (fwrite_checked(writebuf, wptr - writebuf, outfile)) {
+              char* wwptr = writebuf;
+              if (glm_modifier & GLM_RANDOMIZATION) {
+                for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
+                  if (*wwptr == ' ') {break;}
+                 }
+                 wwptr++;
+              }                 
+              if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
 		goto glm_logistic_assoc_ret_WRITE_FAIL;
 	      }
 	    }
@@ -6928,7 +6935,14 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 		  wptr = memcpya(wptr, "      NA       NA       NA ", 27);
 		}
 		wptr = memcpya(wptr, "          NA           NA\n", 26);
-		if (fwrite_checked(writebuf, wptr - writebuf, outfile)) {
+        char* wwptr = writebuf;
+        if (glm_modifier & GLM_RANDOMIZATION) {
+          for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
+            if (*wwptr == ' ') {break;}
+          }
+          wwptr++;
+        }
+		if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
 		  goto glm_logistic_assoc_ret_WRITE_FAIL;
 		}
 	      }
