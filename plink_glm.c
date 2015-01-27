@@ -7,6 +7,8 @@
 #include "plink_set.h"
 #include "plink_stats.h"
 
+#include "zlib-1.2.8/zlib.h"
+
 // currently assumed to be no larger than MODEL_BLOCKSIZE
 // might not want a perfect power of 2 due to cache eviction issues?
 #define GLM_BLOCKSIZE 512
@@ -6072,6 +6074,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   uintptr_t unfiltered_sample_ctl = (unfiltered_sample_ct + (BITCT - 1)) / BITCT;
   FILE* outfile = NULL;
   FILE* outfile_msa = NULL;
+  gzFile gz_outfile = NULL;
   uintptr_t marker_ct = marker_ct_orig;
   uintptr_t sample_uidx = 0;
   uintptr_t cur_constraint_ct = 0;
@@ -6091,6 +6094,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   uint32_t hide_covar = glm_modifier & GLM_HIDE_COVAR;
   uint32_t report_odds = !(glm_modifier & GLM_BETA);
   uint32_t report_only_pval = glm_modifier & GLM_RANDOMIZATION;
+  uint32_t output_gz = glm_modifier & GLM_OUTPUT_GZ;
 
   // do_perms guarantees this is true for set test
   uint32_t fill_orig_chiabs = do_perms || mtest_adjust;
@@ -6598,16 +6602,25 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   }
 
   outname_end2 = memcpyb(outname_end, ".assoc.logistic", 16);
-  if (glm_modifier & GLM_RANDOMIZATION) {
+  if (report_only_pval) {
     outname_end2 = memcpyb(outname_end2, ".P", 3);
   }
-  if (fopen_checked(&outfile, outname, "w")) {
+  if (output_gz) {
+    outname_end2 = memcpyb(outname_end2, ".gz", 4);
+    if (gzopen_checked(&gz_outfile, outname, "wb")) {
+      goto glm_logistic_assoc_ret_OPEN_FAIL;
+    }
+  } else if (fopen_checked(&outfile, outname, "w")) {
     goto glm_logistic_assoc_ret_OPEN_FAIL;
   }
   LOGPRINTFWW5("Writing logistic model association results to %s ... ", outname);
   fflush(stdout);
   if (report_only_pval) {
-    fputs("P \n", outfile);
+    if (output_gz) {
+      if (gzputs(gz_outfile, "P \n") == -1) {
+        goto glm_logistic_assoc_ret_WRITE_FAIL;
+      }
+    } else {fputs("P \n", outfile);}
   } else {
     sprintf(tbuf, " CHR %%%us         BP   A1       TEST    NMISS       %s ", plink_maxsnp, report_odds? "  OR" : "BETA");
     fprintf(outfile, tbuf, "SNP");
@@ -6870,8 +6883,12 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	        }
 	        wwptr++;
 	      }
-	      if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
-		goto glm_logistic_assoc_ret_WRITE_FAIL;
+          if (output_gz) {
+            if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
+              goto glm_logistic_assoc_ret_WRITE_FAIL;
+            }
+          } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
+            goto glm_logistic_assoc_ret_WRITE_FAIL;
 	      }
 	    }
 	  }
@@ -6898,10 +6915,14 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
                   if (*wwptr == ' ') {break;}
                  }
                  wwptr++;
-              }                 
-              if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
-		goto glm_logistic_assoc_ret_WRITE_FAIL;
-	      }
+              }
+              if (output_gz) {
+                if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
+                  goto glm_logistic_assoc_ret_WRITE_FAIL;
+                }
+              } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
+                  goto glm_logistic_assoc_ret_WRITE_FAIL;
+              }
 	    }
 	  } else if (orig_pvals) {
 	    orig_pvals[marker_idx3] = -9;
@@ -6943,7 +6964,11 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
           }
           wwptr++;
         }
-		if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
+        if (output_gz) {
+          if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
+            goto glm_logistic_assoc_ret_WRITE_FAIL;
+          }
+        } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
 		  goto glm_logistic_assoc_ret_WRITE_FAIL;
 		}
 	      }
@@ -7011,7 +7036,11 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
     }
     fputs("\b\b", stdout);
     logprint("done.\n");
-    if (fclose_null(&outfile)) {
+    if (output_gz) {
+      if (gzclose(gz_outfile) != Z_OK) {
+        goto glm_logistic_assoc_ret_WRITE_FAIL;
+      }
+    } else if (fclose_null(&outfile)) {
       goto glm_logistic_assoc_ret_WRITE_FAIL;
     }
     if (!is_set_test) {
