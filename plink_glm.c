@@ -6090,6 +6090,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   uint32_t perm_count = glm_modifier & GLM_PERM_COUNT;
   uint32_t hide_covar = glm_modifier & GLM_HIDE_COVAR;
   uint32_t report_odds = !(glm_modifier & GLM_BETA);
+  uint32_t report_only_pval = glm_modifier & GLM_RANDOMIZATION;
 
   // do_perms guarantees this is true for set test
   uint32_t fill_orig_chiabs = do_perms || mtest_adjust;
@@ -6605,7 +6606,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   }
   LOGPRINTFWW5("Writing logistic model association results to %s ... ", outname);
   fflush(stdout);
-  if (glm_modifier & GLM_RANDOMIZATION) {
+  if (report_only_pval) {
     fputs("P \n", outfile);
   } else {
     sprintf(tbuf, " CHR %%%us         BP   A1       TEST    NMISS       %s ", plink_maxsnp, report_odds? "  OR" : "BETA");
@@ -6863,7 +6864,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	      wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
 
 	      char* wwptr = writebuf;
-	      if (glm_modifier & GLM_RANDOMIZATION) {
+	      if (report_only_pval) {
 	        for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
 	          if (*wwptr == ' ') {break;}
 	        }
@@ -6892,7 +6893,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
               wptr = double_g_writewx4x(wptr, dxx, 12, ' ');
               wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
               char* wwptr = writebuf;
-              if (glm_modifier & GLM_RANDOMIZATION) {
+              if (report_only_pval) {
                 for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
                   if (*wwptr == ' ') {break;}
                  }
@@ -6936,7 +6937,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 		}
 		wptr = memcpya(wptr, "          NA           NA\n", 26);
         char* wwptr = writebuf;
-        if (glm_modifier & GLM_RANDOMIZATION) {
+        if (report_only_pval) {
           for (wwptr = wptr - 1; wwptr > writebuf; wwptr--) {
             if (*wwptr == ' ') {break;}
           }
