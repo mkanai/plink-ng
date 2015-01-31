@@ -6926,7 +6926,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
                 if (!report_only_pval) {
 		wptr = memcpya(wptr, "      NA       NA       NA ", 27);
                 } else {
-                  wptr = memcpya(wptr, "      NA ", 10);
+                  wptr = memcpya(wptr, "      NA ", 9);
                 }
 	      }
               if (!report_only_pval) {
@@ -6988,13 +6988,13 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
           if (!report_only_pval) {
 		    wptr = memcpya(wptr, "      NA       NA       NA ", 27);
           } else {
-            wptr = memcpya(wptr, "      NA ", 10);
+            wptr = memcpya(wptr, "      NA ", 9);
           }
 		}
         if (!report_only_pval) {
 		  wptr = memcpya(wptr, "          NA           NA\n", 26);
         } else {
-          wptr = memcpya(wptr, "           NA\n", 15);
+          wptr = memcpya(wptr, "          NA\n", 13);
         }
         char* wwptr = writebuf;
         if (report_only_pval) {
