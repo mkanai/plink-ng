@@ -91,7 +91,7 @@
 
 const char ver_str[] =
 #ifdef STABLE_BUILD
-  "PLINK v1.90b3h"
+  "PLINK v1.90b3g"
 #else
   "PLINK v1.90p"
 #endif
@@ -104,7 +104,7 @@ const char ver_str[] =
   " 32-bit"
 #endif
   // include trailing space if day < 10, so character length stays the same
-  " (7 Mar 2015) ";
+  " (5 Mar 2015) ";
 const char ver_str2[] =
 #ifdef STABLE_BUILD
   "" // (don't want this when version number has a trailing letter)
@@ -1080,7 +1080,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
       if (random_thin_samples(thin_keep_sample_prob, unfiltered_sample_ct, sample_exclude, &sample_exclude_ct)) {
         goto plink_ret_ALL_SAMPLES_EXCLUDED;
       }
-    } else if (thin_keep_sample_ct) {
+    } else if (thin_keep_sample_ct & !(glm_modifier & GLM_RANDOMIZATION)) {
       retval = random_thin_samples_ct(thin_keep_sample_ct, unfiltered_sample_ct, sample_exclude, &sample_exclude_ct);
       if (retval) {
         goto plink_ret_1;
@@ -2009,8 +2009,8 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
         if (glm_modifier & GLM_RANDOMIZATION) {
             LOGPRINTF("Logistic regression randomization test #%d-%d started.\n", uii, perm_end);
             if (!(pheno_nm_ct)) {
-              pheno_nm_ct = sample_ct;
-              for (ulii = 0; ulii < sample_ct; ulii++) {set_bit(pheno_nm, ulii);}
+              pheno_nm_ct = unfiltered_sample_ct;
+              for (ulii = 0; ulii < unfiltered_sample_ct; ulii++) {set_bit(pheno_nm, ulii);}
             }
         }
 
@@ -2020,9 +2020,22 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
             memcpy(outname_end, perm_count, strlen(perm_count) + 1);
             outname_end2 = outname_end + strlen(perm_count);
             sfmt_init_gen_rand(&sfmt, uii);
-            for (uljj = 0; uljj < sample_ct; uljj++) {
-              if (sfmt_genrand_uint32(&sfmt) % 2) {set_bit(pheno_c, uljj);}
-              else {clear_bit(pheno_c, uljj);}
+            if (thin_keep_sample_ct) {
+              if (sample_exclude_ct) {
+                clear_bits(sample_exclude, 0, unfiltered_sample_ct);
+                sample_exclude_ct = 0;
+              }
+              retval = random_thin_samples_ct(thin_keep_sample_ct, unfiltered_sample_ct, sample_exclude, &sample_exclude_ct);
+              if (retval) {
+                goto plink_ret_1;
+              }
+              sample_ct = unfiltered_sample_ct - sample_exclude_ct;
+              sfmt_init_gen_rand(&sfmt, uii);
+            }
+            for (ujj = 0, uljj = 0; uljj < sample_ct; ujj++, uljj++) {
+              next_unset_unsafe_ck(sample_exclude, &ujj);
+              if (sfmt_genrand_uint32(&sfmt) % 2) {set_bit(pheno_c, ujj);}
+              else {clear_bit(pheno_c, ujj);}
             }
           }
 	      retval = glm_logistic_assoc(threads, bedfile, bed_offset, outname, outname_end2, glm_modifier, glm_vif_thresh, glm_xchr_model, glm_mperm_val, parameters_range_list_ptr, tests_range_list_ptr, ci_size, ci_zt, pfilter, output_min_p, mtest_adjust, adjust_lambda, unfiltered_marker_ct, marker_exclude, marker_ct, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_allele_ptrs, max_marker_allele_len, marker_reverse, condition_mname, condition_fname, chrom_info_ptr, unfiltered_sample_ct, sample_ct, sample_exclude, cluster_ct, cluster_map, cluster_starts, apip, mperm_save, pheno_nm_ct, pheno_nm, pheno_c, covar_ct, covar_names, max_covar_name_len, covar_nm, covar_d, founder_info, sex_nm, sex_male, ldip->modifier & LD_IGNORE_X, hh_exists, perm_batch_size, sip);
