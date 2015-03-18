@@ -104,7 +104,7 @@ const char ver_str[] =
   " 32-bit"
 #endif
   // include trailing space if day < 10, so character length stays the same
-  " (5 Mar 2015) ";
+  " (14 Mar 2015)";
 const char ver_str2[] =
 #ifdef STABLE_BUILD
   "" // (don't want this when version number has a trailing letter)
@@ -345,9 +345,6 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
   uintptr_t* ac_excl_bitfield = NULL;
   double* pheno_d = NULL;
   double* orig_pheno_d = NULL;
-  double* dist_missing_wts = NULL;
-  uint32_t marker_weight_sum = 0;
-  uint32_t* dist_missing_wts_i = NULL;
   char* sample_ids = NULL;
   uintptr_t max_sample_id_len = 4;
   char* paternal_ids = NULL;
@@ -369,7 +366,6 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
   uint64_t dists_alloc = 0;
   double missing_phenod = (double)missing_pheno;
   double ci_zt = 0.0;
-  uint32_t wt_needed = distance_wt_req(calculation_type, read_dists_fname, dist_calc_type);
   uintptr_t bed_offset = 3;
   uint32_t* marker_pos = NULL;
   uint32_t hh_exists = 0;
@@ -406,13 +402,10 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
   int32_t* hwe_haph_allfs = NULL;
   pthread_t threads[MAX_THREADS];
   uint32_t* uiptr;
-  double* dptr;
-  double* dptr2;
   double* rel_ibc;
   uintptr_t uljj;
   uint32_t ujj;
   uint32_t ukk;
-  double dxx;
   char* outname_end2;
   int32_t ii;
   int64_t llyy;
@@ -422,8 +415,6 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
   uint32_t sample_f_male_ct;
   Pedigree_rel_info pri;
   uintptr_t marker_uidx;
-  uintptr_t marker_uidx_stop;
-  uintptr_t marker_idx;
 
   if ((cm_map_fname || update_cm) && (!marker_cms_needed)) {
     LOGPRINTF("Error: --%s results would never be used.  (Did you forget --make-bed?)\n", cm_map_fname? "cm-map" : "update-cm");
@@ -1228,13 +1219,13 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
     }
     fill_ulong_zero(marker_reverse, uii);
     if (bedfile) {
-      retval = calc_freqs_and_hwe(bedfile, outname, outname_end, unfiltered_marker_ct, marker_exclude, unfiltered_marker_ct - marker_exclude_ct, marker_ids, max_marker_id_len, unfiltered_sample_ct, sample_exclude, sample_exclude_ct, sample_ids, max_sample_id_len, founder_info, nonfounders, (misc_flags / MISC_MAF_SUCC) & 1, set_allele_freqs, bed_offset, (hwe_thresh > 0.0) || (calculation_type & CALC_HARDY), hwe_modifier & HWE_THRESH_ALL, (pheno_nm_ct && pheno_c)? ((calculation_type / CALC_HARDY) & 1) : 0, min_ac, max_ac, geno_thresh, pheno_nm, pheno_nm_ct? pheno_c : NULL, &hwe_lls, &hwe_lhs, &hwe_hhs, &hwe_ll_cases, &hwe_lh_cases, &hwe_hh_cases, &hwe_ll_allfs, &hwe_lh_allfs, &hwe_hh_allfs, &hwe_hapl_allfs, &hwe_haph_allfs, &geno_excl_bitfield, &ac_excl_bitfield, &sample_male_ct, &sample_f_ct, &sample_f_male_ct, wt_needed, &topsize, &dist_missing_wts, distance_exp, chrom_info_ptr, om_ip, sex_nm, sex_male, map_is_unsorted & UNSORTED_SPLIT_CHROM, &hh_exists);
+      retval = calc_freqs_and_hwe(bedfile, outname, outname_end, unfiltered_marker_ct, marker_exclude, unfiltered_marker_ct - marker_exclude_ct, marker_ids, max_marker_id_len, unfiltered_sample_ct, sample_exclude, sample_exclude_ct, sample_ids, max_sample_id_len, founder_info, nonfounders, (misc_flags / MISC_MAF_SUCC) & 1, set_allele_freqs, bed_offset, (hwe_thresh > 0.0) || (calculation_type & CALC_HARDY), hwe_modifier & HWE_THRESH_ALL, (pheno_nm_ct && pheno_c)? ((calculation_type / CALC_HARDY) & 1) : 0, min_ac, max_ac, geno_thresh, pheno_nm, pheno_nm_ct? pheno_c : NULL, &hwe_lls, &hwe_lhs, &hwe_hhs, &hwe_ll_cases, &hwe_lh_cases, &hwe_hh_cases, &hwe_ll_allfs, &hwe_lh_allfs, &hwe_hh_allfs, &hwe_hapl_allfs, &hwe_haph_allfs, &geno_excl_bitfield, &ac_excl_bitfield, &sample_male_ct, &sample_f_ct, &sample_f_male_ct, &topsize, chrom_info_ptr, om_ip, sex_nm, sex_male, map_is_unsorted & UNSORTED_SPLIT_CHROM, &hh_exists);
       if (retval) {
 	goto plink_ret_1;
       }
 
       if (freqname) {
-	retval = read_external_freqs(freqname, unfiltered_marker_ct, marker_exclude, marker_exclude_ct, marker_ids, max_marker_id_len, chrom_info_ptr, marker_allele_ptrs, set_allele_freqs, nchrobs, (misc_flags / MISC_MAF_SUCC) & 1, distance_exp, wt_needed, dist_missing_wts);
+	retval = read_external_freqs(freqname, unfiltered_marker_ct, marker_exclude, marker_exclude_ct, marker_ids, max_marker_id_len, chrom_info_ptr, marker_allele_ptrs, set_allele_freqs, nchrobs, (misc_flags / MISC_MAF_SUCC) & 1);
 	if (retval) {
 	  goto plink_ret_1;
 	}
@@ -1340,10 +1331,6 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
 	  }
 	}
       }
-
-      if (wt_needed) {
-	calc_dist_missing_wts(distance_exp, unfiltered_marker_ct, marker_exclude, unfiltered_marker_ct - marker_exclude_ct, hwe_ll_allfs, hwe_lh_allfs, hwe_hh_allfs, dist_missing_wts);
-      }
       wkspace_reset(hwe_lls);
     }
     if (sip->fname) {
@@ -1385,50 +1372,6 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
     }
   }
 
-  if (wt_needed) {
-    // normalize included marker weights to add to just under 2^32.  (switch to
-    // 2^64 if/when 32-bit performance becomes less important than accuracy on
-    // 50+ million marker sets.)
-    dxx = 0.0;
-    marker_uidx = 0;
-    marker_idx = 0;
-    do {
-      marker_uidx = next_unset_ul_unsafe(marker_exclude, marker_uidx);
-      marker_uidx_stop = next_set_ul(marker_exclude, marker_uidx, unfiltered_marker_ct);
-      marker_idx += marker_uidx_stop - marker_uidx;
-      dptr = &(dist_missing_wts[marker_uidx]);
-      dptr2 = &(dist_missing_wts[marker_uidx_stop]);
-      marker_uidx = marker_uidx_stop;
-      do {
-        dxx += *dptr++;
-      } while (dptr < dptr2);
-    } while (marker_idx < marker_ct);
-    // subtract marker_ct to guard against marker_weight_sum overflow from
-    // rounding
-    dxx = (4294967296.0 - ((double)((intptr_t)marker_ct))) / dxx;
-    if (wkspace_alloc_ui_checked(&dist_missing_wts_i, marker_idx * sizeof(int32_t))) {
-      goto plink_ret_NOMEM;
-    }
-    marker_uidx = 0;
-    marker_idx = 0;
-    uiptr = dist_missing_wts_i;
-    do {
-      marker_uidx = next_unset_ul_unsafe(marker_exclude, marker_uidx);
-      marker_uidx_stop = next_set_ul(marker_exclude, marker_uidx, unfiltered_marker_ct);
-      marker_idx += marker_uidx_stop - marker_uidx;
-      dptr = &(dist_missing_wts[marker_uidx]);
-      dptr2 = &(dist_missing_wts[marker_uidx_stop]);
-      marker_uidx = marker_uidx_stop;
-      do {
-        uii = (uint32_t)((*dptr++) * dxx + 0.5);
-        marker_weight_sum += uii;
-        *uiptr++ = uii;
-      } while (dptr < dptr2);
-    } while (marker_idx < marker_ct);
-    wkspace_left += topsize;
-    topsize = 0;
-  }
-
   if (relationship_or_ibc_req(calculation_type)) {
     if (relip->pca_cluster_names_flattened || relip->pca_clusters_fname) {
       retval = extract_clusters(unfiltered_sample_ct, sample_exclude, sample_ct, cluster_ct, cluster_map, cluster_starts, cluster_ids, max_cluster_id_len, relip->pca_cluster_names_flattened, relip->pca_clusters_fname, &pca_sample_exclude, &pca_sample_ct);
@@ -1447,7 +1390,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
 	ulii = unfiltered_sample_ct - pca_sample_ct;
       }
     }
-    retval = calc_rel(threads, parallel_idx, parallel_tot, calculation_type, relip, bedfile, bed_offset, outname, outname_end, unfiltered_marker_ct, marker_exclude, marker_reverse, marker_ct, unfiltered_sample_ct, pca_sample_exclude? pca_sample_exclude : sample_exclude, pca_sample_exclude? (&ulii) : (&sample_exclude_ct), sample_ids, max_sample_id_len, set_allele_freqs, &rel_ibc, chrom_info_ptr);
+    retval = calc_rel(threads, parallel_idx, parallel_tot, calculation_type, relip, bedfile, bed_offset, outname, outname_end, distance_wts_fname, (dist_calc_type & DISTANCE_WTS_NOHEADER), unfiltered_marker_ct, marker_exclude, marker_reverse, marker_ct, marker_ids, max_marker_id_len, unfiltered_sample_ct, pca_sample_exclude? pca_sample_exclude : sample_exclude, pca_sample_exclude? (&ulii) : (&sample_exclude_ct), sample_ids, max_sample_id_len, set_allele_freqs, &rel_ibc, chrom_info_ptr);
     if (retval) {
       goto plink_ret_1;
     }
@@ -1761,7 +1704,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
   } else
   */
   if (distance_req(calculation_type, read_dists_fname)) {
-    retval = calc_distance(threads, parallel_idx, parallel_tot, bedfile, bed_offset, outname, outname_end, calculation_type, dist_calc_type, marker_exclude, marker_ct, set_allele_freqs, unfiltered_sample_ct, sample_exclude, sample_ct, sample_ids, max_sample_id_len, chrom_info_ptr, wt_needed, marker_weight_sum, dist_missing_wts_i, distance_exp);
+    retval = calc_distance(threads, parallel_idx, parallel_tot, bedfile, bed_offset, outname, outname_end, read_dists_fname, distance_wts_fname, distance_exp, calculation_type, dist_calc_type, unfiltered_marker_ct, marker_exclude, marker_ct, marker_ids, max_marker_id_len, set_allele_freqs, unfiltered_sample_ct, sample_exclude, sample_ct, sample_ids, max_sample_id_len, chrom_info_ptr);
     if (retval) {
       goto plink_ret_1;
     }
@@ -6040,7 +5983,7 @@ int32_t main(int32_t argc, char** argv) {
 	  if (param_ct == 2) {
 	    if (!strcmp(argv[cur_arg + 1], "noheader")) {
 	      uii = 2;
-	    } else if (!strcmp(argv[cur_arg + 2], "noheader")) {
+	    } else if (strcmp(argv[cur_arg + 2], "noheader")) {
 	      sprintf(logbuf, "Error: Invalid --distance-wts parameter '%s'.\n", argv[cur_arg + 2]);
 	      goto main_ret_INVALID_CMDLINE_WWA;
 	    }
@@ -6050,9 +5993,6 @@ int32_t main(int32_t argc, char** argv) {
 	  if (retval) {
 	    goto main_ret_1;
 	  }
-	  logprint("Error: --distance-wts is currently under development.\n");
-	  retval = RET_CALC_NOT_YET_SUPPORTED;
-	  goto main_ret_1;
 	}
       } else if (!memcmp(argptr2, "istance-matrix", 15)) {
 	if (distance_exp != 0.0) {
@@ -8282,6 +8222,10 @@ int32_t main(int32_t argc, char** argv) {
 	  logprint("Error: --make-grm-bin cannot be used with --make-grm-gz.\n");
 	  goto main_ret_INVALID_CMDLINE_A;
 	}
+	if (distance_exp != 0.0) {
+	  logprint("Error: '--distance-wts exp=[x]' cannot be used with --make-grm-gz.\n");
+	  goto main_ret_INVALID_CMDLINE_A;
+	}
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 0, 2)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
 	}
@@ -8319,6 +8263,10 @@ int32_t main(int32_t argc, char** argv) {
 	}
 	calculation_type |= CALC_RELATIONSHIP;
       } else if (!memcmp(argptr2, "ake-grm-bin", 12)) {
+	if (distance_exp != 0.0) {
+	  logprint("Error: '--distance-wts exp=[x]' cannot be used with --make-grm-bin.\n");
+	  goto main_ret_INVALID_CMDLINE_A;
+	}
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 0, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
 	}
@@ -8341,6 +8289,10 @@ int32_t main(int32_t argc, char** argv) {
       } else if (!memcmp(argptr2, "ake-rel", 8)) {
 	if (calculation_type & CALC_RELATIONSHIP) {
 	  logprint("Error: --make-rel cannot be used with --make-grm-gz/--make-grm-bin.\n");
+	  goto main_ret_INVALID_CMDLINE_A;
+	}
+	if (distance_exp != 0.0) {
+	  logprint("Error: '--distance-wts exp=[x]' cannot be used with --make-rel.\n");
 	  goto main_ret_INVALID_CMDLINE_A;
 	}
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 0, 3)) {
@@ -12598,6 +12550,10 @@ int32_t main(int32_t argc, char** argv) {
       logprint("Error: --parallel and --ibs-matrix cannot be used together.  Use --distance\ninstead.\n");
       goto main_ret_INVALID_CMDLINE_A;
     }
+  }
+  if (distance_wts_fname && (!(calculation_type & (CALC_DISTANCE | CALC_RELATIONSHIP)))) {
+    logprint("Error: --distance-wts must be used with --distance, --make-rel, --make-grm-bin,\nor --make-grm-gz.\n");
+    goto main_ret_INVALID_CMDLINE_A;
   }
   if ((parallel_tot > 1) && (!(calculation_type & (CALC_LD | CALC_DISTANCE | CALC_GENOME | CALC_RELATIONSHIP)))) {
     if ((!(calculation_type & CALC_EPI)) || (!(epi_info.modifier & (EPI_FAST | EPI_REG)))) {
