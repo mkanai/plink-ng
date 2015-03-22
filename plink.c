@@ -1562,7 +1562,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
       logprint("Error: Run-of-homozygosity scanning requires a sorted .bim.  Retry this command\nafter using --make-bed to sort your data.\n");
       goto plink_ret_INVALID_CMDLINE;
     }
-    retval = calc_homozyg(homozyg_ptr, bedfile, bed_offset, marker_ct, unfiltered_marker_ct, marker_exclude, marker_ids, max_marker_id_len, plink_maxsnp, marker_allele_ptrs, max_marker_allele_len, marker_reverse, chrom_info_ptr, marker_pos, sample_ct, unfiltered_sample_ct, sample_exclude, sample_ids, plink_maxfid, plink_maxiid, max_sample_id_len, outname, outname_end, pheno_nm, pheno_c, pheno_d, output_missing_pheno, sex_male);
+    retval = calc_homozyg(homozyg_ptr, bedfile, bed_offset, marker_ct, unfiltered_marker_ct, marker_exclude, marker_ids, max_marker_id_len, plink_maxsnp, marker_allele_ptrs, max_marker_allele_len, marker_reverse, chrom_info_ptr, marker_pos, marker_cms, sample_ct, unfiltered_sample_ct, sample_exclude, sample_ids, plink_maxfid, plink_maxiid, max_sample_id_len, outname, outname_end, pheno_nm, pheno_c, pheno_d, output_missing_pheno, sex_male);
     if (retval) {
       goto plink_ret_1;
     }
@@ -7097,8 +7097,10 @@ int32_t main(int32_t argc, char** argv) {
 	  } else if (!strcmp(argv[cur_arg + uii], "extend")) {
 	    homozyg.modifier |= HOMOZYG_EXTEND;
 	  } else if (!strcmp(argv[cur_arg + uii], "subtract-1-from-lengths")) {
-            homozyg.modifier |= HOMOZYG_OLD_LENGTHS;
-	  } else {
+        homozyg.modifier |= HOMOZYG_OLD_LENGTHS;
+	  } else if (!strcmp(argv[cur_arg + uii], "physical")) {
+        homozyg.modifier |= HOMOZYG_PHYSICAL;
+      } else {
 	    sprintf(logbuf, "Error: Invalid --homozyg parameter '%s'.\n", argv[cur_arg + uii]);
 	    goto main_ret_INVALID_CMDLINE_WWA;
 	  }
@@ -7124,6 +7126,17 @@ int32_t main(int32_t argc, char** argv) {
 	calculation_type |= CALC_HOMOZYG;
 	// round up
 	homozyg.min_bases = 1 + (uint32_t)((int32_t)(dxx * 1000 * (1 - SMALL_EPSILON)));
+      } else if (!memcmp(argptr2, "omozyg-cm", 10)) {
+        if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
+          goto main_ret_INVALID_CMDLINE_2A;
+        }
+        if (scan_double(argv[cur_arg + 1], &dxx) || (dxx < SMALL_EPSILON) || (dxx >= (2147483.646 * (1 + SMALL_EPSILON)))) { // should be updated to appropriate value
+          sprintf(logbuf, "Error: Invalid --homozyg-cm parameter '%s'.\n", argv[cur_arg + 1]);
+          goto main_ret_INVALID_CMDLINE_WWA;
+        }
+        calculation_type |= CALC_HOMOZYG;
+        homozyg.min_bases = 1 + (uint32_t)((int32_t)(dxx * CM_BP_RATE * (1 - SMALL_EPSILON)));
+        homozyg.modifier |= HOMOZYG_PHYSICAL;
       } else if (!memcmp(argptr2, "omozyg-density", 15)) {
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
