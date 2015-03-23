@@ -266,7 +266,7 @@ static inline uint32_t are_marker_pos_needed(uint64_t calculation_type, uint64_t
 
 static inline uint32_t are_marker_cms_needed(uint64_t calculation_type, char* cm_map_fname, Two_col_params* update_cm, Homozyg_info* homozyg_ptr) {
   if (calculation_type & (CALC_MAKE_BED | CALC_MAKE_BIM | CALC_RECODE | CALC_HOMOZYG)) {
-    if (cm_map_fname || update_cm || (homozyg_ptr->modifier & HOMOZYG_PHYSICAL)) {
+    if (cm_map_fname || update_cm || (homozyg_ptr->modifier & HOMOZYG_GENETIC)) {
       return MARKER_CMS_FORCED;
     } else {
       return MARKER_CMS_OPTIONAL;
@@ -3566,6 +3566,12 @@ int32_t main(int32_t argc, char** argv) {
 	  fputs("Warning: --hardy2 flag is obsolete, and now treated as an alias for\n'--hardy midp'.\n", stdout);
 	  memcpy(flagptr, "hardy midp", 11);
 	  break;
+        } else if (!strcmp(argptr, "homozyg-density-cm")) {
+      memcpy(flagptr, "homozyg-density", 16);
+      break;
+        } else if (!strcmp(argptr, "homozyg-gap-cm")) {
+      memcpy(flagptr, "homozyg-gap", 11);
+      break;
 	}
 	goto main_flag_copy;
 
@@ -7098,8 +7104,8 @@ int32_t main(int32_t argc, char** argv) {
 	    homozyg.modifier |= HOMOZYG_EXTEND;
 	  } else if (!strcmp(argv[cur_arg + uii], "subtract-1-from-lengths")) {
         homozyg.modifier |= HOMOZYG_OLD_LENGTHS;
-	  } else if (!strcmp(argv[cur_arg + uii], "physical")) {
-        homozyg.modifier |= HOMOZYG_PHYSICAL;
+	  } else if (!strcmp(argv[cur_arg + uii], "genetic")) {
+        homozyg.modifier |= HOMOZYG_GENETIC;
       } else {
 	    sprintf(logbuf, "Error: Invalid --homozyg parameter '%s'.\n", argv[cur_arg + uii]);
 	    goto main_ret_INVALID_CMDLINE_WWA;
@@ -7116,6 +7122,10 @@ int32_t main(int32_t argc, char** argv) {
 	}
 	calculation_type |= CALC_HOMOZYG;
       } else if (!memcmp(argptr2, "omozyg-kb", 10)) {
+    if (homozyg.modifier & HOMOZYG_GENETIC) {
+      logprint("Error: --homozyg-kb cannot be used with '--homozyg genetic'. Use '--homozyg-cm' or plain --homozyg instead.\n");
+      goto main_ret_INVALID_CMDLINE_A;
+    }
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
 	}
@@ -7127,6 +7137,11 @@ int32_t main(int32_t argc, char** argv) {
 	// round up
 	homozyg.min_bases = 1 + (uint32_t)((int32_t)(dxx * 1000 * (1 - SMALL_EPSILON)));
       } else if (!memcmp(argptr2, "omozyg-cm", 10)) {
+        UNSTABLE("homozyg-cm");
+        if (!(homozyg.modifier & HOMOZYG_GENETIC)) {
+          logprint("Error: --homozyg-cm cannot be used with plain '--homozyg'. Use '--homozyg-kb' or '--homozyg genetic' instead.\n");
+          goto main_ret_INVALID_CMDLINE_A;
+        }
         if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
           goto main_ret_INVALID_CMDLINE_2A;
         }
@@ -7136,7 +7151,7 @@ int32_t main(int32_t argc, char** argv) {
         }
         calculation_type |= CALC_HOMOZYG;
         homozyg.min_bases = 1 + (uint32_t)((int32_t)(dxx * CM_BP_RATE * (1 - SMALL_EPSILON)));
-        homozyg.modifier |= HOMOZYG_PHYSICAL;
+        homozyg.modifier |= HOMOZYG_GENETIC;
       } else if (!memcmp(argptr2, "omozyg-density", 15)) {
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
@@ -7146,7 +7161,7 @@ int32_t main(int32_t argc, char** argv) {
 	  goto main_ret_INVALID_CMDLINE_WWA;
 	}
         calculation_type |= CALC_HOMOZYG;
-	homozyg.max_bases_per_snp = ((int32_t)(dxx * 1000 * (1 + SMALL_EPSILON)));
+	homozyg.max_bases_per_snp = ((int32_t)(dxx * ((homozyg.modifier & HOMOZYG_GENETIC) ? CM_BP_RATE : 1000) * (1 + SMALL_EPSILON)));
       } else if (!memcmp(argptr2, "omozyg-gap", 11)) {
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;
@@ -7156,7 +7171,7 @@ int32_t main(int32_t argc, char** argv) {
 	  goto main_ret_INVALID_CMDLINE_WWA;
 	}
         calculation_type |= CALC_HOMOZYG;
-	homozyg.max_gap = ((int32_t)(dxx * 1000 * (1 + SMALL_EPSILON)));
+	homozyg.max_gap = ((int32_t)(dxx * ((homozyg.modifier & HOMOZYG_GENETIC) ? CM_BP_RATE : 1000) * (1 + SMALL_EPSILON)));
       } else if (!memcmp(argptr2, "omozyg-het", 11)) {
 	if (enforce_param_ct_range(param_ct, argv[cur_arg], 1, 1)) {
 	  goto main_ret_INVALID_CMDLINE_2A;

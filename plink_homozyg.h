@@ -21,14 +21,14 @@ typedef struct {
 #define HOMOZYG_CONSENSUS_MATCH 4
 #define HOMOZYG_OLD_LENGTHS 8
 #define HOMOZYG_EXTEND 0x10
-#define HOMOZYG_PHYSICAL 0x20
+#define HOMOZYG_GENETIC 0x20
 
 #define CM_BP_RATE 1000000
 
-static inline uint32_t cM2bp(uint32_t* marker_pos, double* marker_cms, uint32_t idx, uint32_t use_physical_map) {
-  return use_physical_map ? marker_cms[idx]*CM_BP_RATE : marker_pos[idx];
+static inline uint32_t cM2bp(uint32_t* marker_pos, double* marker_cms, uint32_t idx, uint32_t use_genetic_map) {
+  return use_genetic_map ? marker_cms[idx]*CM_BP_RATE : marker_pos[idx];
 }
-#define CM2BP(idx) cM2bp(marker_pos, marker_cms, idx, use_physical_map)
+#define CM2BP(idx) cM2bp(marker_pos, marker_cms, idx, use_genetic_map)
 
 void homozyg_init(Homozyg_info* homozyg_ptr);
 

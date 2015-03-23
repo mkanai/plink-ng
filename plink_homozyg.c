@@ -88,7 +88,7 @@ void update_end_nonhom(uintptr_t* readbuf_cur, uint32_t sample_ct, uint32_t* end
 #define ROH_ENTRY_INTS 6
 #endif
 
-void roh_extend_forward(uint32_t* marker_pos, double* marker_cms, uintptr_t* marker_exclude, uint32_t marker_uidx, uint32_t nsnp_incr, uint32_t is_new_lengths, uint32_t use_physical_map, double max_bases_per_snp, uint32_t* roh_list_cur) {
+void roh_extend_forward(uint32_t* marker_pos, double* marker_cms, uintptr_t* marker_exclude, uint32_t marker_uidx, uint32_t nsnp_incr, uint32_t is_new_lengths, uint32_t use_genetic_map, double max_bases_per_snp, uint32_t* roh_list_cur) {
   // marker_uidx should be the index of the marker immediately *after* the last
   // eligible one.
   int32_t subtract_pos = (int32_t)(CM2BP(roh_list_cur[0]) - is_new_lengths);
@@ -105,7 +105,7 @@ void roh_extend_forward(uint32_t* marker_pos, double* marker_cms, uintptr_t* mar
   }
 }
 
-void save_confirmed_roh_extend(uint32_t uidx_first, uint32_t older_uidx, uint32_t cidx_len, uint32_t cur_roh_het_ct, uint32_t cur_roh_missing_ct, uintptr_t* sample_last_roh_idx_ptr, uintptr_t* roh_ct_ptr, uint32_t* roh_list, uint32_t* marker_pos, double* marker_cms, uintptr_t* marker_exclude, uintptr_t marker_uidx, uint32_t is_new_lengths, uint32_t use_physical_map, double max_bases_per_snp, uint32_t* prev_roh_end_cidx_ptr, uint32_t* cur_roh_earliest_extend_uidx_ptr, uint32_t cidx_cur) {
+void save_confirmed_roh_extend(uint32_t uidx_first, uint32_t older_uidx, uint32_t cidx_len, uint32_t cur_roh_het_ct, uint32_t cur_roh_missing_ct, uintptr_t* sample_last_roh_idx_ptr, uintptr_t* roh_ct_ptr, uint32_t* roh_list, uint32_t* marker_pos, double* marker_cms, uintptr_t* marker_exclude, uintptr_t marker_uidx, uint32_t is_new_lengths, uint32_t use_genetic_map, double max_bases_per_snp, uint32_t* prev_roh_end_cidx_ptr, uint32_t* cur_roh_earliest_extend_uidx_ptr, uint32_t cidx_cur) {
   // This is straightforward when the 'extend' modifier isn't present, we just
   // append to roh_list.  It's a bit more complicated with 'extend':
   //
@@ -184,7 +184,7 @@ void save_confirmed_roh_extend(uint32_t uidx_first, uint32_t older_uidx, uint32_
     }
     // extend previous ROH as far as possible before current ROH's start,
     // then extend current one backward
-    roh_extend_forward(marker_pos, marker_cms, marker_exclude, uidx_first, cidx_start - prev_roh_end_cidx, is_new_lengths, use_physical_map, max_bases_per_snp, prev_roh_list_entry);
+    roh_extend_forward(marker_pos, marker_cms, marker_exclude, uidx_first, cidx_start - prev_roh_end_cidx, is_new_lengths, use_genetic_map, max_bases_per_snp, prev_roh_list_entry);
     cur_uidx_first = prev_roh_list_entry[1] + 1;
     next_unset_unsafe_ck(marker_exclude, &cur_uidx_first);
   }
@@ -229,7 +229,7 @@ uint32_t roh_update(Homozyg_info* hp, uintptr_t* readbuf_cur, uintptr_t* swbuf_c
   uint32_t max_sw_hets = hp->window_max_hets;
   uint32_t max_sw_missings = hp->window_max_missing;
   uint32_t is_new_lengths = 1 ^ ((hp->modifier / HOMOZYG_OLD_LENGTHS) & 1);
-  uint32_t use_physical_map = hp->modifier & HOMOZYG_PHYSICAL;
+  uint32_t use_genetic_map = hp->modifier & HOMOZYG_GENETIC;
   uint32_t forced_end = CM2BP(old_uidx) - CM2BP(older_uidx) > hp->max_gap; //  = (marker_pos[old_uidx] - marker_pos[older_uidx]) > hp->max_gap;
   uint32_t is_cur_hit = 0;
   uintptr_t cur_word = 0;
@@ -350,7 +350,7 @@ uint32_t roh_update(Homozyg_info* hp, uintptr_t* readbuf_cur, uintptr_t* swbuf_c
 	      if (*roh_ct_ptr == max_roh_ct) {
 		return 1;
 	      }
-	      save_confirmed_roh_extend(uidx_first, older_uidx, cidx_len, cur_roh_het_cts[sample_idx], cur_roh_missing_cts[sample_idx], &(sample_to_last_roh[sample_idx]), roh_ct_ptr, roh_list, marker_pos, marker_cms, marker_exclude, old_uidx, is_new_lengths, use_physical_map, max_bases_per_snp, &(prev_roh_end_cidxs[sample_idx]), &(cur_roh_earliest_extend_uidxs[sample_idx]), marker_cidx);
+	      save_confirmed_roh_extend(uidx_first, older_uidx, cidx_len, cur_roh_het_cts[sample_idx], cur_roh_missing_cts[sample_idx], &(sample_to_last_roh[sample_idx]), roh_ct_ptr, roh_list, marker_pos, marker_cms, marker_exclude, old_uidx, is_new_lengths, use_genetic_map, max_bases_per_snp, &(prev_roh_end_cidxs[sample_idx]), &(cur_roh_earliest_extend_uidxs[sample_idx]), marker_cidx);
 	    }
 	  }
 	  cur_roh_cidx_starts[sample_idx] = 0xffffffffU;
@@ -359,7 +359,7 @@ uint32_t roh_update(Homozyg_info* hp, uintptr_t* readbuf_cur, uintptr_t* swbuf_c
 	  }
 	}
       } else if ((cur_call || forced_end) && (prev_roh_end_cidxs[sample_idx] != 0xffffffffU)) {
-	roh_extend_forward(marker_pos, marker_cms, marker_exclude, old_uidx, marker_cidx - prev_roh_end_cidxs[sample_idx], is_new_lengths, use_physical_map, max_bases_per_snp, &(roh_list[sample_to_last_roh[sample_idx] * ROH_ENTRY_INTS]));
+	roh_extend_forward(marker_pos, marker_cms, marker_exclude, old_uidx, marker_cidx - prev_roh_end_cidxs[sample_idx], is_new_lengths, use_genetic_map, max_bases_per_snp, &(roh_list[sample_to_last_roh[sample_idx] * ROH_ENTRY_INTS]));
 	prev_roh_end_cidxs[sample_idx] = 0xffffffffU;
       }
       if (is_cur_hit) {
@@ -390,7 +390,7 @@ uint32_t roh_update(Homozyg_info* hp, uintptr_t* readbuf_cur, uintptr_t* swbuf_c
   return 0;
 }
 
-int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* marker_exclude, char* marker_ids, uintptr_t max_marker_id_len, uint32_t plink_maxsnp, Chrom_info* chrom_info_ptr, uint32_t* marker_pos, double* marker_cms, uintptr_t sample_ct, uintptr_t* sample_exclude, char* sample_ids, uint32_t plink_maxfid, uint32_t plink_maxiid, uintptr_t max_sample_id_len, uintptr_t* pheno_nm, uintptr_t* pheno_c, double* pheno_d, char* missing_pheno_str, uint32_t omp_is_numeric, uint32_t missing_pheno_len, uint32_t is_new_lengths, uint32_t use_physical_map, uintptr_t roh_ct, uint32_t* roh_list, uintptr_t* roh_list_chrom_starts, uintptr_t* sample_to_last_roh, uint32_t* max_pool_size_ptr, uint32_t* max_roh_len_ptr) {
+int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* marker_exclude, char* marker_ids, uintptr_t max_marker_id_len, uint32_t plink_maxsnp, Chrom_info* chrom_info_ptr, uint32_t* marker_pos, double* marker_cms, uintptr_t sample_ct, uintptr_t* sample_exclude, char* sample_ids, uint32_t plink_maxfid, uint32_t plink_maxiid, uintptr_t max_sample_id_len, uintptr_t* pheno_nm, uintptr_t* pheno_c, double* pheno_d, char* missing_pheno_str, uint32_t omp_is_numeric, uint32_t missing_pheno_len, uint32_t is_new_lengths, uint32_t use_genetic_map, uintptr_t roh_ct, uint32_t* roh_list, uintptr_t* roh_list_chrom_starts, uintptr_t* sample_to_last_roh, uint32_t* max_pool_size_ptr, uint32_t* max_roh_len_ptr) {
   unsigned char* wkspace_mark = wkspace_base;
   FILE* outfile = NULL;
   FILE* outfile_indiv = NULL;
@@ -429,13 +429,13 @@ int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* mark
   if (fopen_checked(&outfile, outname, "w")) {
     goto write_main_roh_reports_ret_OPEN_FAIL;
   }
-  sprintf(tbuf, "%%%us %%%us      PHE  CHR %%%us %%%us         POS1         POS2         %s     NSNP  DENSITY     PHOM     PHET\n", plink_maxfid, plink_maxiid, plink_maxsnp, plink_maxsnp, use_physical_map ? "cM" : "KB");
+  sprintf(tbuf, "%%%us %%%us      PHE  CHR %%%us %%%us         POS1         POS2         %s     NSNP  DENSITY     PHOM     PHET\n", plink_maxfid, plink_maxiid, plink_maxsnp, plink_maxsnp, use_genetic_map ? "cM" : "KB");
   fprintf(outfile, tbuf, "FID", "IID", "SNP1", "SNP2");
   memcpy(&(outname_end[4]), ".indiv", 7);
   if (fopen_checked(&outfile_indiv, outname, "w")) {
     goto write_main_roh_reports_ret_OPEN_FAIL;
   }
-  sprintf(tbuf, "%%%us %%%us  PHE     NSEG       %s    %sAVG\n", plink_maxfid, plink_maxiid, use_physical_map ? "cM" : "KB", use_physical_map ? "cM" : "KB");
+  sprintf(tbuf, "%%%us %%%us  PHE     NSEG       %s    %sAVG\n", plink_maxfid, plink_maxiid, use_genetic_map ? "cM" : "KB", use_genetic_map ? "cM" : "KB");
   fprintf(outfile_indiv, tbuf, "FID", "IID");
   tbuf[plink_maxfid] = ' ';
   tbuf[plink_maxfid + plink_maxiid + 1] = ' ';
@@ -491,12 +491,12 @@ int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* mark
       slen = strlen(cptr);
       wptr = memcpya(memseta(wptr, 32, plink_maxsnp - slen), cptr, slen);
       wptr = memseta(wptr, 32, 3);
-      wptr = uint32_writew10(wptr, use_physical_map ? marker_cms[marker_uidx1] : marker_pos[marker_uidx1]);
+      wptr = use_genetic_map ? width_force(10, wptr, double_g_writewx8(wptr, marker_cms[marker_uidx1], 1)) : uint32_writew10(wptr, marker_pos[marker_uidx1]);
       wptr = memseta(wptr, 32, 3);
-      wptr = uint32_writew10x(wptr, use_physical_map ? marker_cms[marker_uidx2] : marker_pos[marker_uidx2], ' ');
-      dxx = ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1))) / (use_physical_map ? ((double)CM_BP_RATE - EPSILON) : (1000.0 - EPSILON));
+      wptr = use_genetic_map ? width_force(10, wptr, double_g_writewx8x(wptr, marker_cms[marker_uidx2], 1, ' ')) : uint32_writew10x(wptr, marker_pos[marker_uidx2], ' ');
+      dxx = ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1))) / (use_genetic_map ? ((double)CM_BP_RATE - EPSILON) : (1000.0 - EPSILON));
       kb_tot += dxx;
-      wptr = width_force(10, wptr, double_f_writew3(wptr, dxx));
+      wptr = width_force(10, wptr, use_genetic_map ? double_g_writewx8(wptr, dxx, 1) : double_f_writew3(wptr, dxx));
       *wptr++ = ' ';
       if (cur_roh[2] > max_roh_len) {
 	max_roh_len = cur_roh[2];
@@ -1294,16 +1294,16 @@ void assign_allelic_match_groups(uint32_t pool_size, uint32_t* allelic_match_cts
   }  
 }
 
-char* roh_pool_write_middle(char* wptr, char* marker_ids, uintptr_t max_marker_id_len, uint32_t plink_maxsnp, uint32_t* marker_pos, double* marker_cms, uint32_t is_new_lengths, uint32_t use_physical_map, uint32_t marker_uidx1, uint32_t marker_uidx2) {
+char* roh_pool_write_middle(char* wptr, char* marker_ids, uintptr_t max_marker_id_len, uint32_t plink_maxsnp, uint32_t* marker_pos, double* marker_cms, uint32_t is_new_lengths, uint32_t use_genetic_map, uint32_t marker_uidx1, uint32_t marker_uidx2) {
   *wptr++ = ' ';
   wptr = fw_strcpy(plink_maxsnp, &(marker_ids[marker_uidx1 * max_marker_id_len]), wptr);
   *wptr++ = ' ';
   wptr = fw_strcpy(plink_maxsnp, &(marker_ids[marker_uidx2 * max_marker_id_len]), wptr);
   wptr = memseta(wptr, 32, 5);
-  wptr = use_physical_map ? double_g_writewx8(wptr, marker_cms[marker_uidx1], 10) : uint32_writew10(wptr, marker_pos[marker_uidx1]);
+  wptr = use_genetic_map ? double_g_writewx8(wptr, marker_cms[marker_uidx1], 10) : uint32_writew10(wptr, marker_pos[marker_uidx1]);
   wptr = memseta(wptr, 32, 5);
-  wptr = use_physical_map ? double_g_writewx8(wptr, marker_cms[marker_uidx2], 10) : uint32_writew10x(wptr, marker_pos[marker_uidx2], ' ');
-  wptr = double_g_writewx8(wptr, ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1)) / (use_physical_map ? (double)CM_BP_RATE : 1000.0)), 8);
+  wptr = use_genetic_map ? double_g_writewx8(wptr, marker_cms[marker_uidx2], 10) : uint32_writew10x(wptr, marker_pos[marker_uidx2], ' ');
+  wptr = double_g_writewx8(wptr, ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1)) / (use_genetic_map ? (double)CM_BP_RATE : 1000.0)), 8);
   *wptr++ = ' ';
   return wptr;
 }
@@ -1314,7 +1314,7 @@ int32_t roh_pool(Homozyg_info* hp, FILE* bedfile, uint64_t bed_offset, char* out
   uint64_t unfiltered_sample_ct4 = (unfiltered_sample_ct + 3) / 4;
   uintptr_t unfiltered_sample_ctl2 = (unfiltered_sample_ct + (BITCT2 - 1)) / BITCT2;
   double mismatch_max = 1 - (hp->overlap_min * (1 - EPSILON)); // fuzz
-  uint32_t use_physical_map = hp->modifier & HOMOZYG_PHYSICAL;
+  uint32_t use_genetic_map = hp->modifier & HOMOZYG_GENETIC;
   uint32_t is_consensus_match = hp->modifier & HOMOZYG_CONSENSUS_MATCH;
   uint32_t is_verbose = hp->modifier & HOMOZYG_GROUP_VERBOSE;
   uint32_t max_pool_sizel = (max_pool_size + (BITCT - 1)) / BITCT;
@@ -2285,7 +2285,7 @@ int32_t roh_pool(Homozyg_info* hp, FILE* bedfile, uint64_t bed_offset, char* out
 	} else if (marker_uidx2 > union_uidx2) {
 	  union_uidx2 = marker_uidx2;
 	}
-        wptr = roh_pool_write_middle(wptr, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_cms, is_new_lengths, use_physical_map, marker_uidx1, marker_uidx2);
+        wptr = roh_pool_write_middle(wptr, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_cms, is_new_lengths, use_genetic_map, marker_uidx1, marker_uidx2);
 	wptr = uint32_writew8x(wptr, cur_roh[2], ' ');
 #ifdef __LP64__
 	ulii = cur_pool[pool_size + slot_idx2];
@@ -2343,7 +2343,7 @@ int32_t roh_pool(Homozyg_info* hp, FILE* bedfile, uint64_t bed_offset, char* out
         wptr = width_force(8, wptr, cptr);
 	*wptr++ = ' ';
 	wptr = width_force(4, wptr, chrom_name_write(wptr, chrom_info_ptr, chrom_start));
-        wptr = roh_pool_write_middle(wptr, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_cms, is_new_lengths, use_physical_map, marker_uidx1, marker_uidx2);
+        wptr = roh_pool_write_middle(wptr, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_cms, is_new_lengths, use_genetic_map, marker_uidx1, marker_uidx2);
         wptr = uint32_writew8(wptr, marker_cidx);
         wptr = memcpya(wptr, "    NA     NA \n", 15);
 	if (ujj) {
@@ -2412,7 +2412,7 @@ int32_t calc_homozyg(Homozyg_info* hp, FILE* bedfile, uintptr_t bed_offset, uint
   uintptr_t window_size = hp->window_size;
   double hit_threshold = hp->hit_threshold;
   uint32_t is_new_lengths = 1 ^ ((hp->modifier / HOMOZYG_OLD_LENGTHS) & 1);
-  uint32_t use_physical_map = hp->modifier & HOMOZYG_PHYSICAL;
+  uint32_t use_genetic_map = hp->modifier & HOMOZYG_GENETIC;
   uint32_t chrom_ct = chrom_info_ptr->chrom_ct;
   int32_t x_code = chrom_info_ptr->x_code;
   int32_t mt_code = chrom_info_ptr->mt_code;
@@ -2725,7 +2725,7 @@ int32_t calc_homozyg(Homozyg_info* hp, FILE* bedfile, uintptr_t bed_offset, uint
   // "truncate" the completed list so we can start making workspace allocations
   // again
   wkspace_alloc(roh_ct * ROH_ENTRY_INTS * sizeof(int32_t)); // roh_list
-  retval = write_main_roh_reports(outname, outname_end, marker_exclude, marker_ids, max_marker_id_len, plink_maxsnp, chrom_info_ptr, marker_pos, marker_cms, sample_ct, sample_exclude, sample_ids, plink_maxfid, plink_maxiid, max_sample_id_len, pheno_nm, pheno_c, pheno_d, missing_pheno_str, omp_is_numeric, missing_pheno_len, is_new_lengths, use_physical_map, roh_ct, roh_list, roh_list_chrom_starts, sample_to_last_roh, &max_pool_size, &max_roh_len);
+  retval = write_main_roh_reports(outname, outname_end, marker_exclude, marker_ids, max_marker_id_len, plink_maxsnp, chrom_info_ptr, marker_pos, marker_cms, sample_ct, sample_exclude, sample_ids, plink_maxfid, plink_maxiid, max_sample_id_len, pheno_nm, pheno_c, pheno_d, missing_pheno_str, omp_is_numeric, missing_pheno_len, is_new_lengths, use_genetic_map, roh_ct, roh_list, roh_list_chrom_starts, sample_to_last_roh, &max_pool_size, &max_roh_len);
   if (retval) {
     goto calc_homozyg_ret_1;
   }
