@@ -494,7 +494,7 @@ int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* mark
       wptr = uint32_writew10(wptr, use_physical_map ? marker_cms[marker_uidx1] : marker_pos[marker_uidx1]);
       wptr = memseta(wptr, 32, 3);
       wptr = uint32_writew10x(wptr, use_physical_map ? marker_cms[marker_uidx2] : marker_pos[marker_uidx2], ' ');
-      dxx = ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1))) / (use_physical_map ? (1000000.0 - EPSILON) : (1000.0 - EPSILON));
+      dxx = ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1))) / (use_physical_map ? ((double)CM_BP_RATE - EPSILON) : (1000.0 - EPSILON));
       kb_tot += dxx;
       wptr = width_force(10, wptr, double_f_writew3(wptr, dxx));
       *wptr++ = ' ';
