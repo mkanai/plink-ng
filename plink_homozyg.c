@@ -230,7 +230,7 @@ uint32_t roh_update(Homozyg_info* hp, uintptr_t* readbuf_cur, uintptr_t* swbuf_c
   uint32_t max_sw_missings = hp->window_max_missing;
   uint32_t is_new_lengths = 1 ^ ((hp->modifier / HOMOZYG_OLD_LENGTHS) & 1);
   uint32_t use_genetic_map = hp->modifier & HOMOZYG_GENETIC;
-  uint32_t forced_end = CM2BP(old_uidx) - CM2BP(older_uidx) > hp->max_gap; //  = (marker_pos[old_uidx] - marker_pos[older_uidx]) > hp->max_gap;
+  uint32_t forced_end = (CM2BP(old_uidx) - CM2BP(older_uidx)) > hp->max_gap;
   uint32_t is_cur_hit = 0;
   uintptr_t cur_word = 0;
   uintptr_t cur_call;
@@ -493,7 +493,8 @@ int32_t write_main_roh_reports(char* outname, char* outname_end, uintptr_t* mark
       wptr = memseta(wptr, 32, 3);
       wptr = use_genetic_map ? width_force(10, wptr, double_g_writewx8(wptr, marker_cms[marker_uidx1], 1)) : uint32_writew10(wptr, marker_pos[marker_uidx1]);
       wptr = memseta(wptr, 32, 3);
-      wptr = use_genetic_map ? width_force(10, wptr, double_g_writewx8x(wptr, marker_cms[marker_uidx2], 1, ' ')) : uint32_writew10x(wptr, marker_pos[marker_uidx2], ' ');
+      wptr = use_genetic_map ? width_force(10, wptr, double_g_writewx8(wptr, marker_cms[marker_uidx2], 1)) : uint32_writew10(wptr, marker_pos[marker_uidx2]);
+      *wptr++ = ' ';
       dxx = ((double)(CM2BP(marker_uidx2) + is_new_lengths - CM2BP(marker_uidx1))) / (use_genetic_map ? ((double)CM_BP_RATE - EPSILON) : (1000.0 - EPSILON));
       kb_tot += dxx;
       wptr = width_force(10, wptr, use_genetic_map ? double_g_writewx8(wptr, dxx, 1) : double_f_writew3(wptr, dxx));
