@@ -1,0 +1,28 @@
+language: cpp
+
+compiler:
+    - gcc
+
+before_install:
+    - echo $LANG
+    - echo $LC_ALL
+    - sudo apt-get update -qq
+
+install:
+    - sudo apt-get install -qq curl g++ libc6-dev-i386 libatlas-dev libblas-dev liblapack-dev
+
+before_script:
+    - ./plink_first_compile
+
+script:
+    - make plink
+    - make clobber && make plink64 ARCH64=-m64 ZLIB64=zlib-1.2.8/libz.so.1.2.8
+    - make clobber && make plinks
+
+branches:
+    except:
+        - spike
+
+notifications:
+    email: true
+
