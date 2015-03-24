@@ -17,7 +17,7 @@ before_script:
 
 script:
     - ./plink_first_compile
-    - make plinkw LINK_FLAGS=-Wl,-Bdynamic -lm -lpthread -ldl
+    - make plinkw LINKFLAGS=-Wl,-Bdynamic -lm -lpthread -ldl
 
 notifications:
     email: true
