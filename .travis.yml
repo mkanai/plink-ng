@@ -12,11 +12,11 @@ install:
     - sudo apt-get install -qq curl g++ libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev
 
 before_script:
-    - ./plink_first_compile
+    - mv Makefile.std Makefile
 
 script:
-    - make clobber && make plink64 ARCH64=-m64 ZLIB64=zlib-1.2.8/libz.so.1.2.8
-    - make clobber && make plinks
+    - ./plink_first_compile
+    - make plinkw
 
 notifications:
     email: true
