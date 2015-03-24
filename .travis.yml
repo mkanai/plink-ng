@@ -19,10 +19,6 @@ script:
     - make clobber && make plink64 ARCH64=-m64 ZLIB64=zlib-1.2.8/libz.so.1.2.8
     - make clobber && make plinks
 
-branches:
-    except:
-        - spike
-
 notifications:
     email: true
 
