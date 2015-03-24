@@ -14,11 +14,13 @@ install:
 before_script:
     - export LIBRARY_PATH=/usr/lib/atlas:$LIBRARY_PATH
     - export LD_LIBRARY_PATH=/usr/lib/atlas:$LD_LIBRARY_PATH
+    - ls /usr/lib/atlas
+    - ls /usr/lib64/atlas
     - mv Makefile.std Makefile
 
 script:
     - ./plink_first_compile
-    - make plinkw LINKFLAGS=-Wl,-Bdynamic -lm -lpthread -ldl
+    - make plinkw BLASFLAGS="-L/usr/lib/atlas -llapack -lcblas -latlas" LINKFLAGS="-Wl,-Bdynamic -lm -lpthread -ldl"
 
 notifications:
     email: true
