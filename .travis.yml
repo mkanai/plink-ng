@@ -9,16 +9,17 @@ before_install:
     - sudo apt-get update -qq
 
 install:
-    - sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev
+    - sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev libatlas3-base:i386 libatlas-base-dev:i386 libblas-dev:i386 liblapack3:i386 liblapack-dev:i386
 
 before_script:
-    - export LIBRARY_PATH=/usr/lib/atlas-base:$LIBRARY_PATH
-    - export LD_LIBRARY_PATH=/usr/lib/atlas-base:$LD_LIBRARY_PATH
-    - mv Makefile.std Makefile
+    - export LIBRARY_PATH=/usr/lib/atlas-base:/usr/lib32:/usr/lib32/atlas-base:$LIBRARY_PATH
+    - export LD_LIBRARY_PATH=/usr/lib/atlas-base:/usr/lib32:/usr/lib32/atlas-base:$LD_LIBRARY_PATH
+#    - mv Makefile.std Makefile
 
 script:
     - ./plink_first_compile
-    - make plinkw LINKFLAGS="-Wl,-Bdynamic -lm -lpthread -ldl"
+    - make clobber && make plinks
+    - make clobber && make plinkw LINKFLAGS="-Wl,-Bdynamic -lm -lpthread -ldl"
 
 notifications:
     email: true
