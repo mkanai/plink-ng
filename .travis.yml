@@ -9,7 +9,7 @@ before_install:
     - sudo apt-get update -qq
 
 install:
-    - sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev libatlas3gf-base:i386 libatlas-base-dev:i386 libblas-dev:i386 liblapack3gf:i386 liblapack-dev:i386
+    - sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev 
 
 before_script:
     - export LIBRARY_PATH=/usr/lib/atlas-base:/usr/lib32:/usr/lib32/atlas-base:$LIBRARY_PATH
