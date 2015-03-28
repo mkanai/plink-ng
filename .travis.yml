@@ -6,22 +6,18 @@ compiler:
 before_install:
     - echo $LANG
     - echo $LC_ALL
-    - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq; fi
+    - sudo apt-get update -qq
 
 install:
-    - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev; fi
+    - sudo apt-get install -qq curl g++ gfortran libc6-dev-i386 libatlas-dev libatlas-base-dev libblas-dev liblapack-dev
 
 before_script:
-    - if [ $TRAVIS_OS_NAME == linux ]; then mv Makefile.std Makefile; fi
+    - mv Makefile.std Makefile
 
 script:
     - ./plink_first_compile
-    - if [ $TRAVIS_OS_NAME == linux ]; then make plink BLASFLAGS="-L/usr/lib/atlas-base -Wl,-Bstatic -llapack -lcblas -latlas" LINKFLAGS="-Wl,-Bdynamic -lm -lpthread -ldl"; fi
-    - if [ $TRAVIS_OS_NAME == osx ]; then make plinks; fi
-
-os:
-    - linux
-    - osx
+    - rm plink
+    - make plink BLASFLAGS="-L/usr/lib/atlas-base -Wl,-Bstatic -llapack -lcblas -latlas" LINKFLAGS="-Wl,-Bdynamic -lm -lpthread -ldl"
 
 notifications:
     email: true
