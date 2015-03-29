@@ -13370,41 +13370,41 @@ int32_t recode(uint32_t recode_modifier, FILE* bedfile, uintptr_t bed_offset, ch
     if (fopen_checked(&outfile, outname, "w")) {
       goto recode_ret_OPEN_FAIL;
     }
-    if (fputs_checked((delimiter == ' ')? "FID IID PAT MAT SEX PHENOTYPE" : "FID\tIID\tPAT\tMAT\tSEX\tPHENOTYPE", outfile)) {
+    if (fputs_checked((delimiter == ' ')? "FID IID PAT MAT SEX PHENOTYPE MAC" : "FID\tIID\tPAT\tMAT\tSEX\tPHENOTYPE\tMAC", outfile)) {
       goto recode_ret_WRITE_FAIL;
     }
-    for (marker_idx = 0; marker_idx < marker_ct; marker_uidx++, marker_idx++) {
-      next_unset_ul_unsafe_ck(marker_exclude, &marker_uidx);
-      cptr = &(marker_ids[marker_uidx * max_marker_id_len]);
-      uii = IS_NONNULL_AND_SET(recode_allele_reverse, marker_uidx);
-      if (allele_missing && allele_missing[marker_uidx]) {
-	aptr = allele_missing[marker_uidx];
-      } else {
-	aptr = mk_allele_ptrs[2 * marker_uidx + uii];
-      }
-      putc(delimiter, outfile);
-      fputs(cptr, outfile);
-      putc('_', outfile);
-      fputs(aptr, outfile);
-      if (recode_modifier & RECODE_INCLUDE_ALT) {
-	putc('(', outfile);
-	putc('/', outfile);
-	if (allele_missing && allele_missing[marker_uidx]) {
-	  fputs(mk_allele_ptrs[2 * marker_uidx + uii], outfile);
-	  putc(',', outfile);
-	}
-	fputs(mk_allele_ptrs[2 * marker_uidx + 1 - uii], outfile);
-	putc(')', outfile);
-      }
-      if (recode_modifier & RECODE_AD) {
-	putc(delimiter, outfile);
-	fputs(cptr, outfile);
-	fputs("_HET", outfile);
-      }
-      if (ferror(outfile)) {
-	goto recode_ret_WRITE_FAIL;
-      }
-    }
+    /* for (marker_idx = 0; marker_idx < marker_ct; marker_uidx++, marker_idx++) { */
+      /* next_unset_ul_unsafe_ck(marker_exclude, &marker_uidx); */
+      /* cptr = &(marker_ids[marker_uidx * max_marker_id_len]); */
+      /* uii = IS_NONNULL_AND_SET(recode_allele_reverse, marker_uidx); */
+      /* if (allele_missing && allele_missing[marker_uidx]) { */
+	/* aptr = allele_missing[marker_uidx]; */
+      /* } else { */
+	/* aptr = mk_allele_ptrs[2 * marker_uidx + uii]; */
+      /* } */
+      /* putc(delimiter, outfile); */
+      /* fputs(cptr, outfile); */
+      /* putc('_', outfile); */
+      /* fputs(aptr, outfile); */
+      /* if (recode_modifier & RECODE_INCLUDE_ALT) { */
+	/* putc('(', outfile); */
+	/* putc('/', outfile); */
+	/* if (allele_missing && allele_missing[marker_uidx]) { */
+	  /* fputs(mk_allele_ptrs[2 * marker_uidx + uii], outfile); */
+	  /* putc(',', outfile); */
+	/* } */
+	/* fputs(mk_allele_ptrs[2 * marker_uidx + 1 - uii], outfile); */
+	/* putc(')', outfile); */
+      /* } */
+      /* if (recode_modifier & RECODE_AD) { */
+	/* putc(delimiter, outfile); */
+	/* fputs(cptr, outfile); */
+	/* fputs("_HET", outfile); */
+      /* } */
+      /* if (ferror(outfile)) { */
+	/* goto recode_ret_WRITE_FAIL; */
+      /* } */
+    /* } */
     if (putc_checked('\n', outfile)) {
       goto recode_ret_WRITE_FAIL;
     }
@@ -13437,24 +13437,30 @@ int32_t recode(uint32_t recode_modifier, FILE* bedfile, uintptr_t bed_offset, ch
 	marker_uidx = 0;
 	marker_idx = 0;
 	if (recode_modifier & RECODE_A) {
+      uint32_t uss = 0;
+      uint32_t upp[4] = {2, 0, 1, 0};
 	  do {
 	    marker_uidx = next_unset_ul_unsafe(marker_exclude, marker_uidx);
 	    ulii = next_set_ul(marker_exclude, marker_uidx, unfiltered_marker_ct);
 	    marker_idx += ulii - marker_uidx;
 	    do {
 	      ucc = ((*bufptr) >> shiftval) & 3;
-	      if (allele_missing && allele_missing[marker_uidx]) {
-		*wbufptr++ = "0N00"[ucc];
-	      } else {
-		*wbufptr++ = "2N10"[ucc];
-	      }
-	      if (ucc == 1) {
-		*wbufptr++ = 'A';
-	      }
-	      *wbufptr++ = delimiter;
+          if (!(allele_missing && allele_missing[marker_uidx] && ucc != 1)) {
+            uss += upp[ucc];
+          }
+		  /* if (allele_missing && allele_missing[marker_uidx]) { */
+		/* *wbufptr++ = "0N00"[ucc]; */
+		  /* } else { */
+		/* *wbufptr++ = "2N10"[ucc]; */
+		  /* } */
+		  /* if (ucc == 1) { */
+		/* *wbufptr++ = 'A'; */
+		  /* } */
+		  /* *wbufptr++ = delimiter; */
 	      bufptr = &(bufptr[unfiltered_sample_ct4]);
 	    } while (++marker_uidx < ulii);
 	  } while (marker_idx < marker_ct);
+      wbufptr = uint32_writex(wbufptr, uss, '\n');
 	} else {
 	  do {
 	    marker_uidx = next_unset_ul_unsafe(marker_exclude, marker_uidx);
