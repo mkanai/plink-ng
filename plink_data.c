@@ -13460,7 +13460,7 @@ int32_t recode(uint32_t recode_modifier, FILE* bedfile, uintptr_t bed_offset, ch
 	      bufptr = &(bufptr[unfiltered_sample_ct4]);
 	    } while (++marker_uidx < ulii);
 	  } while (marker_idx < marker_ct);
-      wbufptr = uint32_writex(wbufptr, uss, '\n');
+      wbufptr = uint32_write(wbufptr, uss);
 	} else {
 	  do {
 	    marker_uidx = next_unset_ul_unsafe(marker_exclude, marker_uidx);
