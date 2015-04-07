@@ -980,6 +980,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
     if (om_ip->marker_fname) {
       // would rather do this with pre-sorted markers, but that might break
       // order-of-operations assumptions in existing pipelines
+      retval = load_oblig_missing(bedfile, bed_offset, unfiltered_marker_ct, marker_exclude, marker_exclude_ct, marker_ids, max_marker_id_len, cptr, ulii, max_sample_id_len, uiptr, unfiltered_sample_ct, sample_exclude, sex_male, chrom_info_ptr, om_ip);
       if (retval) {
 	goto plink_ret_1;
       }
