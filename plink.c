@@ -1967,6 +1967,9 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
             memcpy(outname_end, perm_count, strlen(perm_count) + 1);
             outname_end2 = outname_end + strlen(perm_count);
             sfmt_init_gen_rand(&sfmt, uii);
+            clear_bits(pheno_c, 0, unfiltered_sample_ct);
+
+            // --thin-indiv-count
             if (thin_keep_sample_ct) {
               if (sample_exclude_ct) {
                 memcpy(sample_exclude_new, sample_exclude, unfiltered_sample_ctl * sizeof(intptr_t));
@@ -1979,11 +1982,54 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
               sample_ct = unfiltered_sample_ct - sample_exclude_ct_new;
               sfmt_init_gen_rand(&sfmt, uii);
             }
-            for (ujj = 0, uljj = 0; uljj < sample_ct; ujj++, uljj++) {
-              next_unset_unsafe_ck(sample_exclude_new, &ujj);
-              if (sfmt_genrand_uint32(&sfmt) % 2) {set_bit(pheno_c, ujj);}
-              else {clear_bit(pheno_c, ujj);}
+            
+            uint32_t sample_uidx;
+            uint32_t sample_idx;
+            uintptr_t sample_ctl = (sample_ct + (BITCT - 1)) / BITCT;
+            uintptr_t* perm_buf;
+            if (wkspace_alloc_ul_checked(&perm_buf, sample_ctl * sizeof(intptr_t))) {
+              goto plink_ret_NOMEM;
             }
+
+            // --within
+            if (cluster_ptr->fname || (misc_flags & MISC_FAMILY_CLUSTERS)) {
+              uint32_t* cluster_map_pos = cluster_map;
+              uint32_t* cluster_end_ptr;
+              uint32_t cluster_idx;
+              uint32_t within_cluster_sample_ct = 0;
+              for (cluster_idx = 0; cluster_idx < cluster_ct; cluster_idx++) {
+                cluster_end_ptr = &(cluster_map[cluster_starts[cluster_idx + 1]]);
+                within_cluster_sample_ct = 0;
+                uiptr = cluster_map_pos;
+                do {
+                  sample_uidx = *uiptr;
+                  if (!is_set(sample_exclude_new, sample_uidx)) {
+                    within_cluster_sample_ct++;
+                  }
+                } while (++uiptr < cluster_end_ptr);
+                generate_perm1_interleaved(within_cluster_sample_ct, within_cluster_sample_ct/2 + (within_cluster_sample_ct%2? uii%2 : 0), 0, 1, perm_buf);
+                for (uiptr = cluster_map_pos, sample_idx = 0; sample_idx < within_cluster_sample_ct; uiptr++) {
+                  sample_uidx = *uiptr;
+                  if (!is_set(sample_exclude_new, sample_uidx) && is_set(perm_buf, sample_idx++)) {
+                      set_bit(pheno_c, sample_uidx);
+                    }
+                }
+                cluster_map_pos = uiptr;
+              }
+            } else {
+              generate_perm1_interleaved(sample_ct, sample_ct/2 + (sample_ct%2? uii%2 : 0), 0, 1, perm_buf);
+              for (sample_uidx = 0, sample_idx = 0; sample_idx < sample_ct; sample_uidx++, sample_idx++) {
+                next_unset_unsafe_ck(sample_exclude_new, &sample_uidx);
+                if (is_set(perm_buf, sample_idx)) {
+                  set_bit(pheno_c, sample_uidx);
+                }
+              }
+            }
+#ifdef DEBUG
+            outname_end2 = memcpyb(outname_end2, ".fam", 5);
+            write_fam(outname, unfiltered_sample_ct, sample_exclude_new, sample_ct, sample_ids, max_sample_id_len, paternal_ids, max_paternal_id_len, maternal_ids, max_maternal_id_len, sex_nm, sex_male, pheno_nm, pheno_c, pheno_d, output_missing_pheno, ' ', sample_sort_map);
+            outname_end2 -= 4;
+#endif
           }
 	      retval = glm_logistic_assoc(threads, bedfile, bed_offset, outname, outname_end2, glm_modifier, glm_vif_thresh, glm_xchr_model, glm_mperm_val, parameters_range_list_ptr, tests_range_list_ptr, ci_size, ci_zt, pfilter, output_min_p, mtest_adjust, adjust_lambda, unfiltered_marker_ct, marker_exclude, marker_ct, marker_ids, max_marker_id_len, plink_maxsnp, marker_pos, marker_allele_ptrs, max_marker_allele_len, marker_reverse, condition_mname, condition_fname, chrom_info_ptr, unfiltered_sample_ct, sample_ct, sample_exclude_new, cluster_ct, cluster_map, cluster_starts, apip, mperm_save, pheno_nm_ct, pheno_nm, pheno_c, covar_ct, covar_names, max_covar_name_len, covar_nm, covar_d, founder_info, sex_nm, sex_male, ldip->modifier & LD_IGNORE_X, hh_exists, perm_batch_size, sip);
         }
