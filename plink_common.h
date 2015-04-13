@@ -1616,15 +1616,15 @@ static inline void prev_unset_unsafe_ck(uintptr_t* bit_arr, uint32_t* loc_ptr) {
 
 // These functions seem to optimize better than memset(arr, 0, x) under gcc.
 static inline void fill_long_zero(intptr_t* larr, size_t size) {
-  intptr_t* lptr = &(larr[size]);
-  while (larr < lptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *larr++ = 0;
   }
 }
 
 static inline void fill_ulong_zero(uintptr_t* ularr, size_t size) {
-  uintptr_t* ulptr = &(ularr[size]);
-  while (ularr < ulptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *ularr++ = 0;
   }
 }
@@ -1640,15 +1640,15 @@ static inline void fill_ull_zero(uint64_t* ullarr, size_t size) {
 #endif
 
 static inline void fill_long_one(intptr_t* larr, size_t size) {
-  intptr_t* lptr = &(larr[size]);
-  while (larr < lptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *larr++ = -1;
   }
 }
 
 static inline void fill_ulong_one(uintptr_t* ularr, size_t size) {
-  uintptr_t* ulptr = &(ularr[size]);
-  while (ularr < ulptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *ularr++ = ~ZEROLU;
   }
 }
@@ -1664,59 +1664,43 @@ static inline void fill_ull_one(uint64_t* ullarr, size_t size) {
 #endif
 
 static inline void fill_int_zero(int32_t* iarr, size_t size) {
-#ifdef __LP64__
-  fill_long_zero((intptr_t*)iarr, size >> 1);
-  if (size & 1) {
-    iarr[size - 1] = 0;
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
+    *iarr++ = 0;
   }
-#else
-  fill_long_zero((intptr_t*)iarr, size);
-#endif
 }
 
 static inline void fill_int_one(int32_t* iarr, size_t size) {
-#ifdef __LP64__
-  fill_long_one((intptr_t*)iarr, size >> 1);
-  if (size & 1) {
-    iarr[size - 1] = -1;
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
+    *iarr++ = -1;
   }
-#else
-  fill_long_one((intptr_t*)iarr, size);
-#endif
 }
 
 static inline void fill_uint_zero(uint32_t* uiarr, size_t size) {
-#ifdef __LP64__
-  fill_long_zero((intptr_t*)uiarr, size >> 1);
-  if (size & 1) {
-    uiarr[size - 1] = 0;
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
+    *uiarr++ = 0;
   }
-#else
-  fill_long_zero((intptr_t*)uiarr, size);
-#endif
 }
 
 static inline void fill_uint_one(uint32_t* uiarr, size_t size) {
-#ifdef __LP64__
-  fill_ulong_one((uintptr_t*)uiarr, size >> 1);
-  if (size & 1) {
-    uiarr[size - 1] = ~0U;
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
+    *uiarr++ = ~0U;
   }
-#else
-  fill_ulong_one((uintptr_t*)uiarr, size);
-#endif
 }
 
 static inline void fill_float_zero(float* farr, size_t size) {
-  float* fptr = &(farr[size]);
-  while (farr < fptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *farr++ = 0.0;
   }
 }
 
 static inline void fill_double_zero(double* darr, size_t size) {
-  double* dptr = &(darr[size]);
-  while (darr < dptr) {
+  size_t ulii;
+  for (ulii = 0; ulii < size; ulii++) {
     *darr++ = 0.0;
   }
 }
