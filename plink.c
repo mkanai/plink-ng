@@ -7870,6 +7870,8 @@ int32_t main(int32_t argc, char** argv) {
           glm_modifier |= GLM_RANDOMIZATION;
         } else if (!strcmp(argv[cur_arg + uii], "gz")) {
           glm_modifier |= GLM_OUTPUT_GZ; 
+        } else if (!strcmp(argv[cur_arg + uii], "csv")) {
+          glm_modifier |= GLM_OUTPUT_CSV;
         } else if (!strcmp(argv[cur_arg + uii], "genedrop")) {
 	      glm_modifier |= GLM_GENEDROP;
 	    } else if (!strcmp(argv[cur_arg + uii], "perm-count")) {

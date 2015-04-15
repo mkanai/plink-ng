@@ -6096,6 +6096,7 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   uint32_t report_odds = !(glm_modifier & GLM_BETA);
   uint32_t report_only_pval = glm_modifier & GLM_RANDOMIZATION;
   uint32_t output_gz = glm_modifier & GLM_OUTPUT_GZ;
+  uint32_t output_csv = glm_modifier & GLM_OUTPUT_CSV;
 
   // do_perms guarantees this is true for set test
   uint32_t fill_orig_chiabs = do_perms || mtest_adjust;
@@ -6618,18 +6619,46 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
   fflush(stdout);
   if (report_only_pval) {
     if (output_gz) {
-      if (gzprintf(gz_outfile, "      %s ", report_odds ? "  OR" : "BETA") == -1) {
-        goto glm_logistic_assoc_ret_WRITE_FAIL;
-      }
-      if (display_ci) {
-        if (gzputs(gz_outfile, "      SE ") == -1) {
+      if (output_csv) {
+        if (gzprintf(gz_outfile, "%s,", report_odds ? "OR" : "BETA") == -1) {
           goto glm_logistic_assoc_ret_WRITE_FAIL;
         }
+        if (display_ci) {
+          if (gzputs(gz_outfile, "SE,") == -1) {
+            goto glm_logistic_assoc_ret_WRITE_FAIL;
+          }
+        }
+        if (gzputs(gz_outfile, "P\n") == -1) {
+          goto glm_logistic_assoc_ret_WRITE_FAIL;
+        }
+      } else {
+        if (gzprintf(gz_outfile, "      %s ", report_odds ? "  OR" : "BETA") == -1) {
+          goto glm_logistic_assoc_ret_WRITE_FAIL;
+        }
+        if (display_ci) {
+          if (gzputs(gz_outfile, "      SE ") == -1) {
+            goto glm_logistic_assoc_ret_WRITE_FAIL;
+          }
+        }
+        if (gzputs(gz_outfile, "           P\n") == -1) {
+            goto glm_logistic_assoc_ret_WRITE_FAIL;
+        }
       }
-      if (gzputs(gz_outfile, "           P\n") == -1) {
-        goto glm_logistic_assoc_ret_WRITE_FAIL;
+    } else {
+      if (output_csv) {
+        fprintf(outfile, "%s,", report_odds ? "OR" : "BETA");
+        if (display_ci) {
+          fputs("SE,", outfile);
+        }
+        fputs("P\n", outfile);
+      } else {
+        fprintf(outfile, "      %s ", report_odds ? "  OR" : "BETA");
+        if (display_ci) {
+          fputs("      SE ", outfile);
+        }
+        fputs("           P\n", outfile);
       }
-    } else {fputs("P \n", outfile);}
+    }
   } else {
     sprintf(tbuf, " CHR %%%us         BP   A1       TEST    NMISS       %s ", plink_maxsnp, report_odds? "  OR" : "BETA");
     fprintf(outfile, tbuf, "SNP");
@@ -6870,11 +6899,19 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	      wptr = fw_strcpy(10, &(cur_param_names[param_idx * max_param_name_len]), wptr_start2);
 	      *wptr++ = ' ';
 	      wptr = uint32_writew8x(wptr, (uint32_t)cur_sample_valid_ct, ' ');
+          if (!report_only_pval) {
 	      wptr = double_g_writewx4x(wptr, report_odds? exp(dxx) : dxx, 10, ' ');
+          } else {
+            if (output_csv) {
+              wptr = double_g_writewx4x(wptr, report_odds? exp(dxx) : dxx, 1, ',');
+            } else {
+              wptr = double_g_writewx4x(wptr, report_odds? exp(dxx) : dxx, 10, ' ');
+            }
+          }
+          if (!report_only_pval) {
 	      if (display_ci) {
 		dyy = ci_zt * se;
 		wptr = double_g_writewx4x(wptr, se, 8, ' ');
-        if (!report_only_pval) {
 		if (report_odds) {
 		  wptr = double_g_writewx4x(wptr, exp(dxx - dyy), 8, ' ');
 		  wptr = double_g_writewx4x(wptr, exp(dxx + dyy), 8, ' ');
@@ -6882,17 +6919,23 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 		  wptr = double_g_writewx4x(wptr, dxx - dyy, 8, ' ');
 		  wptr = double_g_writewx4x(wptr, dxx + dyy, 8, ' ');
 		}
-	      }
           }
-          if (!report_only_pval) {
-	        wptr = double_g_writewx4x(wptr, zval, 12, ' ');
+	        wptr = double_g_writewx4x(wptr, zval, 12, ' ');          
+            wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
+          } else {
+            if (output_csv) {
+              wptr = double_g_writewx4x(wptr, se, 1, ',');
+              wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 1, '\n');
+            } else{
+              wptr = double_g_writewx4x(wptr, se, 8, ' ');
+              wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
+            }
           }
-	      wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
 
 	      char* wwptr = writebuf;
 	      if (report_only_pval) {
             int flag = 0;
-	        for (int count = 0; wwptr < wptr && count < 7; wwptr++) {
+	        for (int count = 0; wwptr < wptr && count < 6; wwptr++) {
               if (flag) {
                 if (*wwptr == ' ') {flag = 0; count++;}
                 continue;
@@ -6900,15 +6943,10 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
               
 	          if (*wwptr != ' ') {flag = 1;}
 	        }
-            wwptr -= 11;
 	      }
-          if (output_gz) {
-            if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
-              goto glm_logistic_assoc_ret_WRITE_FAIL;
-            }
-          } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
+          if (flexwrite_checked(wwptr, wptr - wwptr, output_gz, outfile, gz_outfile)) {
             goto glm_logistic_assoc_ret_WRITE_FAIL;
-	      }
+          }
 	    }
 	  }
 	  if (cur_constraint_ct) {
@@ -6922,22 +6960,31 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 	      wptr = fw_strcpy(10, &(param_names[param_ct_max * max_param_name_len]), wptr_start2);
               *wptr++ = ' ';
               wptr = uint32_writew8(wptr, (uint32_t)cur_sample_valid_ct);
+              if (!report_only_pval) {
               wptr = memcpya(wptr, "         NA ", 12);
               if (display_ci) {
-                if (!report_only_pval) {
 		wptr = memcpya(wptr, "      NA       NA       NA ", 27);
-                } else {
-                  wptr = memcpya(wptr, "      NA ", 9);
-                }
 	      }
-              if (!report_only_pval) {
                 wptr = double_g_writewx4x(wptr, dxx, 12, ' ');
+                wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
+              } else {
+                if (output_csv) {
+                  wptr = memcpya(wptr, " NA,", 4);
+                  if (display_ci) {
+                    wptr = memcpya(wptr, "NA,", 3);
+                  }
+                } else {
+                  wptr = memcpya(wptr, "         NA ", 12);
+                  if (display_ci) {
+                     wptr = memcpya(wptr, "      NA ", 9);
+                  }
+                }
+                wptr = double_g_writex(wptr, MAXV(pval, output_min_p), '\n');
               }
-              wptr = double_g_writewx4x(wptr, MAXV(pval, output_min_p), 12, '\n');
               char* wwptr = writebuf;
               if (report_only_pval) {
                 int flag = 0;
-     	        for (int count = 0; wwptr < wptr && count < 7; wwptr++) {
+     	        for (int count = 0; wwptr < wptr && count < 6; wwptr++) {
                   if (flag) {
                     if (*wwptr == ' ') {flag = 0; count++;}
                     continue;
@@ -6945,15 +6992,10 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
                
 	              if (*wwptr != ' ') {flag = 1;}
     	        }
-                wwptr -= 11;
 	          }
 
-              if (output_gz) {
-                if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
-                  goto glm_logistic_assoc_ret_WRITE_FAIL;
-                }
-              } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
-                  goto glm_logistic_assoc_ret_WRITE_FAIL;
+              if (flexwrite_checked(wwptr, wptr- wwptr, output_gz, outfile, gz_outfile)) {
+                goto glm_logistic_assoc_ret_WRITE_FAIL;
               }
 	    }
 	  } else if (orig_pvals && constraint_ct_max) {
@@ -6984,23 +7026,31 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
 		}
 		*wptr++ = ' ';
 		wptr = uint32_writew8(wptr, (uint32_t)cur_sample_valid_ct);
-		wptr = memcpya(wptr, "         NA ", 12);
-		if (display_ci) {
-          if (!report_only_pval) {
+		if (!report_only_pval) {
+          wptr = memcpya(wptr, "         NA ", 12);
+		  if (display_ci) {
 		    wptr = memcpya(wptr, "      NA       NA       NA ", 27);
-          } else {
-            wptr = memcpya(wptr, "      NA ", 9);
-          }
-		}
-        if (!report_only_pval) {
+		  }
 		  wptr = memcpya(wptr, "          NA           NA\n", 26);
         } else {
-          wptr = memcpya(wptr, "          NA\n", 13);
+          if (output_csv) {
+            wptr = memcpya(wptr, " NA,", 4);
+            if (display_ci) {
+              wptr = memcpya(wptr, "NA,", 3);
+            }
+            wptr = memcpya(wptr, "NA\n", 3);
+          } else {
+            wptr = memcpya(wptr, "         NA ", 12);
+            if (display_ci) {
+              wptr = memcpya(wptr, "      NA ", 9);
+            }
+            wptr = memcpya(wptr, "          NA\n", 13);
+          }
         }
         char* wwptr = writebuf;
         if (report_only_pval) {
           int flag = 0;
-	      for (int count = 0; wwptr < wptr && count < 7; wwptr++) {
+	      for (int count = 0; wwptr < wptr && count < 6; wwptr++) {
             if (flag) {
               if (*wwptr == ' ') {flag = 0; count++;}
               continue;
@@ -7008,16 +7058,11 @@ int32_t glm_logistic_assoc(pthread_t* threads, FILE* bedfile, uintptr_t bed_offs
               
 	        if (*wwptr != ' ') {flag = 1;}
 	      }
-          wwptr -= 11;
 	    }
 
-        if (output_gz) {
-          if (!gzwrite(gz_outfile, wwptr, wptr - wwptr)) {
-            goto glm_logistic_assoc_ret_WRITE_FAIL;
-          }
-        } else if (fwrite_checked(wwptr, wptr - wwptr, outfile)) {
-		  goto glm_logistic_assoc_ret_WRITE_FAIL;
-		}
+        if (flexwrite_checked(wwptr, wptr - wwptr, output_gz, outfile, gz_outfile)) {
+          goto glm_logistic_assoc_ret_WRITE_FAIL;
+        }
 	      }
 	    }
 	  }
