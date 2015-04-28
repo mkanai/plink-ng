@@ -1968,13 +1968,13 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
             outname_end2 = outname_end + strlen(perm_count);
             sfmt_init_gen_rand(&sfmt, uii);
             clear_bits(pheno_c, 0, unfiltered_sample_ct);
+            if (sample_exclude_ct_new > sample_exclude_ct) {
+              memcpy(sample_exclude_new, sample_exclude, unfiltered_sample_ctl * sizeof(intptr_t));
+              sample_exclude_ct_new= sample_exclude_ct;
+            }
 
             // --thin-indiv-count
             if (thin_keep_sample_ct) {
-              if (sample_exclude_ct_new) {
-                memcpy(sample_exclude_new, sample_exclude, unfiltered_sample_ctl * sizeof(intptr_t));
-                sample_exclude_ct_new = sample_exclude_ct;
-              }
               retval = random_thin_samples_ct(thin_keep_sample_ct, unfiltered_sample_ct, sample_exclude_new, &sample_exclude_ct_new);
               if (retval) {
                 goto plink_ret_1;
