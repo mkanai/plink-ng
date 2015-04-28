@@ -1044,7 +1044,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
       ii = sample_exclude_ct - ii;
       LOGPRINTF("%d %s removed due to case/control status (--filter-%s).\n", ii, species_str(ii), (filter_flags & FILTER_BINARY_CASES)? "cases" : "controls");
     }
-    if (filter_flags & (FILTER_BINARY_FEMALES | FILTER_BINARY_MALES)) {
+    if ((filter_flags & (FILTER_BINARY_FEMALES | FILTER_BINARY_MALES)) && !(glm_modifier & GLM_RANDOMIZATION)) {
       ii = sample_exclude_ct;
       filter_samples_bitfields(unfiltered_sample_ct, sample_exclude, &sample_exclude_ct, sex_male, (filter_flags / FILTER_BINARY_MALES) & 1, sex_nm);
       if (sample_exclude_ct == unfiltered_sample_ct) {
@@ -1971,7 +1971,7 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
 
             // --thin-indiv-count
             if (thin_keep_sample_ct) {
-              if (sample_exclude_ct) {
+              if (sample_exclude_ct_new) {
                 memcpy(sample_exclude_new, sample_exclude, unfiltered_sample_ctl * sizeof(intptr_t));
                 sample_exclude_ct_new = sample_exclude_ct;
               }
@@ -2024,6 +2024,16 @@ int32_t plink(char* outname, char* outname_end, char* bedname, char* bimname, ch
                   set_bit(pheno_c, sample_uidx);
                 }
               }
+            }
+
+            // --filter-(fe|)males
+            if (filter_flags & (FILTER_BINARY_FEMALES | FILTER_BINARY_MALES)) {
+              ii = sample_exclude_ct_new;
+              filter_samples_bitfields(unfiltered_sample_ct, sample_exclude_new, &sample_exclude_ct_new, sex_male, (filter_flags / FILTER_BINARY_MALES) & 1, sex_nm);
+              ii = sample_exclude_ct_new - ii;
+              sample_ct = unfiltered_sample_ct - sample_exclude_ct_new;
+              /* LOGPRINTF("%d %s removed due to gender filter (--filter-%s).\n", ii, species_str(ii), (filter_flags & FILTER_BINARY_MALES)? "males" : "females"); */
+              LOGPRINTF("--filter-%s: %d %s removed (%" PRIuPTR " remaining).\n", (filter_flags & FILTER_BINARY_MALES)? "males" : "females", ii, species_str(ii), sample_ct);
             }
 #ifdef DEBUG
             outname_end2 = memcpyb(outname_end2, ".fam", 5);
